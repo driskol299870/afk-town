@@ -421,7 +421,7 @@ html.clear #toast{bottom:176px}
 "use strict";
 const KEY = "afktown.save", MIN = 60e3, HR = 3600e3, SEC = 1e3;
 const TEST = /[?&]test(=|&|$)/.test(location.search);
-const BUILD = "rc6"; // the build tag on the Town screen; bump it each build
+const BUILD = "rc6.0.1"; // the build tag on the Town screen; bump it each build
 // ---------- sound and music (DESIGN 20, rc5.6): everything is made here in code with Web Audio. No files, no samples. ----------
 // rc5.8.2 (mark 69): music is on by default and fades in as the town shows; if the browser blocks audio it starts on the
 // first gesture of any kind (no prompt). Mute wins and lives in localStorage on this phone only (never in the save or the save code).
@@ -2834,7 +2834,7 @@ function showGate(live) {
     $("#gateBtn").disabled = true; $("#gateBtn").textContent = "Downloading…";
     let url = location.href.split("#")[0];
     if (FAKE) { url = url.replace(/([?&])fakepatch=[^&#]*&?/, "$1").replace(/[?&]$/, ""); history.replaceState(null, "", url); }
-    try { if (TEST && QS.has("nonet")) throw 0; const r = await fetch(url, { cache: "reload" }); if (!r.ok || r.headers.get("x-afk-copy")) throw 0; } // same link, skipping the cache; never a store
+    try { if (TEST && QS.has("nonet")) throw 0; const r = await fetch(url, { cache: "reload" }); if (!r.ok || r.headers.get("x-afk-copy") || !/const BUILD = "rc\d/.test(await r.text())) throw 0; } // rc6.0.1: must be the real game // same link, skipping the cache; never a store
     catch (e) { return showNoCopy(); }
     location.reload();
   };
