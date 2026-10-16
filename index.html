@@ -20,6 +20,13 @@ html,body{margin:0;background:radial-gradient(120% 60% at 30% 0%,#f8ecce,var(--b
 body{padding-bottom:calc(76px + env(safe-area-inset-bottom));overflow-x:hidden}
 header{position:sticky;top:0;z-index:5;background:linear-gradient(#3a2a1f,#3a2a1f) top/100% env(safe-area-inset-top) no-repeat,linear-gradient(#f7d86a,#d9a730);color:#3a2a1f;border-bottom:2.5px solid #3a2a1f;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;display:flex;gap:8px;align-items:center;justify-content:space-between}
 header .title{font-weight:800;font-size:18px;white-space:nowrap}
+.wbcard .wbbar{position:relative;height:22px;border:2.5px solid var(--ink);border-radius:12px;background:#e9e1cf;overflow:hidden;margin-top:10px}
+.wbcard .wbfill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(#ef6b5b,#c4332b)}
+.wbcard .wbhp{position:relative;display:block;text-align:center;font-weight:800;font-size:13px;line-height:17px;color:#fff;text-shadow:0 1px 0 #3a2a1f,0 0 3px #3a2a1f}
+.wbcard .wbmarks{position:relative;height:0}.wbcard .wbm{position:absolute;top:2px;transform:translateX(-50%);width:20px;height:20px;display:flex;align-items:center;justify-content:center}.wbcard .wbm:last-child{transform:translateX(-100%)}.wbcard .wbm svg{width:18px;height:18px}.wbcard .wbm.got{filter:none}
+.wbmark{position:absolute;display:flex;flex-direction:column;align-items:center;background:none;border:0;box-shadow:none;padding:0;min-height:0}
+.wbmark .wbic{font-size:44px;line-height:1;filter:drop-shadow(0 3px 0 rgba(58,42,31,.35))}
+.wbmark .wbmini{display:block;width:72px;height:7px;margin:3px auto 0;border:1.5px solid var(--ink);border-radius:4px;background:#e9e1cf;overflow:hidden}.wbmark .wbmini i{display:block;height:100%;background:#c4332b}
 header .tl{display:flex;align-items:center;gap:6px;min-width:0}
 .gear{width:40px;height:40px;min-height:40px;margin:-8px 0 -8px -6px;padding:0;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#fff8e0,#f0d48e);border:2.5px solid var(--ink);box-shadow:0 2px 0 var(--ink)}
 .gear svg{width:26px;height:26px}
@@ -433,7 +440,7 @@ html.clear #toast{bottom:176px}
 "use strict";
 const KEY = "afktown.save", MIN = 60e3, HR = 3600e3, SEC = 1e3;
 const TEST = /[?&]test(=|&|$)/.test(location.search);
-const BUILD = "rc6.1"; // the build tag on the Town screen; bump it each build
+const BUILD = "rc6.2"; // the build tag on the Town screen; bump it each build
 // ---------- sound and music (DESIGN 20, rc5.6): everything is made here in code with Web Audio. No files, no samples. ----------
 // rc5.8.2 (mark 69): music is on by default and fades in as the town shows; if the browser blocks audio it starts on the
 // first gesture of any kind (no prompt). Mute wins and lives in localStorage on this phone only (never in the save or the save code).
@@ -1215,7 +1222,7 @@ function newSave() {
   const t = Date.now();
   const s = { version: 1, created: t, offset: 0, gold: 200, potions: 2, rations: 0, weapons: [], heroes: [], parties: [], gate: [],
     b: { hall: 1, shop: 1, bank: 1, infirmary: 1 }, up: null, bank: { gold: 0, potions: 0, rations: 0, weapons: [] }, lastCollect: t,
-    paid: 0, offers: null, freeDay: "", failNext: false, stats: 1, cw: 1, tip: true, events: [], nextId: 1, lastBackup: 0, nudgeOff: 0, pins: [], pinClock: t, dv: 1, daily: { n: 1, last: null, got: 0 }, chores: { list: [], clock: t } };
+    paid: 0, offers: null, freeDay: "", failNext: false, stats: 1, cw: 1, tip: true, events: [], nextId: 1, lastBackup: 0, nudgeOff: 0, pins: [], pinClock: t, bv: 1, boss: null, inc: [], dv: 1, daily: { n: 1, last: null, got: 0 }, chores: { list: [], clock: t } };
   // starting pair: a Warrior and an Archer (class build, DESIGN 6 and 9)
   const pair = Math.random() < .5 ? ["warrior", "archer"] : ["archer", "warrior"];
   const n1 = pick(NAMES); let n2 = pick(NAMES); while (n2 === n1) n2 = pick(NAMES);
@@ -1260,6 +1267,7 @@ function migrate(s) {
   // rc5.12 (DESIGN 23), one time: the prestige fields. Ranks, XP and everything else are kept as they are.
   // rc6 (DESIGN 18 and 19), one time: the daily streak starts at Day 1 unclaimed and 1 chore is waiting. Nothing else changes.
   if (!s.dv) { s.daily = { n: 1, last: null, got: 0 }; s.chores = { list: [], clock: Date.now() + (s.offset || 0) }; s.chores.list.push(newChore(s, null, seedRnd(s.created))); s.dv = 1; }
+  if (!s.bv) { s.boss = s.boss || null; s.inc = []; s.bv = 1; } // rc6.2: the world boss (33) and its income log (35), empty for old saves (H = 20 until it fills); nothing else changes
   if (!s.daily || typeof s.daily !== "object") s.daily = { n: 1, last: null, got: 0 };
   if (!s.chores || !Array.isArray(s.chores.list)) s.chores = { list: [], clock: Date.now() + (s.offset || 0) };
   if (!s.pv) { s.prest = Math.max(0, Math.floor(+s.prest || 0)); for (const h of s.heroes || []) h.pr = Math.max(0, Math.floor(+h.pr || 0)); s.pv = 1; }
@@ -1294,7 +1302,7 @@ function pinTarget(pin) {
   return { id: pin.id, pin: true, type: pin.type, name: pin.name, ic: P.ic, unlock: 1, base: P.base, need: P.need * h, gold: P.gold * h, xp: P.xp * h,
     wpn: pin.type === "dungeon" ? { p: .3, mix: [[wt, 1]] } : null, pot: pin.type === "animal" ? .3 : 0, rat: pin.type === "quest" ? .5 : 0, x, y };
 }
-function tgOf(id) { if (TGM[id]) return TGM[id]; const pin = S.pins.find(p => p.id === id); return pin ? pinTarget(pin) : null; }
+function tgOf(id) { if (TGM[id]) return TGM[id]; if (id === "boss") return wbTarget(); const pin = S.pins.find(p => p.id === id); return pin ? pinTarget(pin) : null; }
 
 // ---------- rules ----------
 const hero = id => S.heroes.find(h => h.id === id);
@@ -1353,9 +1361,10 @@ function runParts(mem, tg, t) {
   const f = fastOn(t === undefined ? now() : t) ? .5 : 1; // halved after everything (off-class minute too), walks capped at 5 min, the job at 1 h, then each part rounded (DESIGN 27)
   const n = Math.max(1, Math.min(MAXP, mem.length)), base = tg.base / SEC;
   let w = .1 * base * (1 + .1 * (n - 1)) * (1 - avgOf(mem, vigOf) / 100), j = .8 * base * JOB[n - 1] * (1 - .03 * avgOf(mem, skillOf));
-  if (mem.some(h => carries(h, "ration"))) j *= .9;
-  if (f === 1) { w = Math.round(w) * SEC; j = Math.round(j) * SEC + mem.filter(offClass).length * MIN; return { w, j, total: w + j + w }; }
-  w = Math.round(Math.min(w * f, 300)) * SEC; j = Math.round(Math.min((j + mem.filter(offClass).length * 60) * f, 3600)) * SEC; // job cap 1 h (mark 75)
+  if (mem.some(h => carries(h, "ration")) && !tg.fixJob) j *= .9;
+  const offN = tg.fixJob ? 0 : mem.filter(offClass).length; if (tg.fixJob) j = tg.fixJob / SEC; // rc6.2 world boss (33)
+  if (f === 1) { w = Math.round(w) * SEC; j = Math.round(j) * SEC + offN * MIN; return { w, j, total: w + j + w }; }
+  w = Math.round(Math.min(w * f, 300)) * SEC; j = tg.fixJob ? tg.fixJob : Math.round(Math.min((j + offN * 60) * f, 3600)) * SEC; // job cap 1 h (mark 75); the boss job stays 1 h
   return { w, j, total: w + j + w, fast: true };
 }
 // pay while fast travel is on (DESIGN 27): gold and the weapon/Potion drop chances x fast time / normal time for this exact party; XP stays full
@@ -1372,10 +1381,10 @@ function useSupply(h) { h.supply.n--; if (h.supply.n <= 0) h.supply = null; }
 function launch(tid, ids, T) {
   const tg = tgOf(tid), mem = ids.map(hero).filter(Boolean);
   if (!tg || !mem.length) return false; // a full bank never stops a trip (rc5.3): the loot waits at the gate
-  const fail = failChance(mem, tg), P = runParts(mem, tg, T), pay = P.fast ? P.total / runParts(mem, tg, Infinity).total : 1;
-  const rc = mem.find(h => carries(h, "ration")); if (rc) useSupply(rc);
-  const pc = mem.find(h => carries(h, "potion")); if (pc) useSupply(pc);
-  S.parties.push({ id: S.nextId++, tid, members: mem.map(h => h.id), start: T, outEnd: T + P.w, jobEnd: T + P.w + P.j, end: T + P.total, fail, ...(pay < 1 ? { pay } : {}) }); // a trip keeps the time and pay it was sent with
+  const fail = tg.boss ? 0 : failChance(mem, tg), P = runParts(mem, tg, T), pay = tg.boss ? 1 : P.fast ? P.total / runParts(mem, tg, Infinity).total : 1;
+  if (!tg.boss) { const rc = mem.find(h => carries(h, "ration")); if (rc) useSupply(rc);
+  const pc = mem.find(h => carries(h, "potion")); if (pc) useSupply(pc); } // the boss uses no items
+  S.parties.push({ id: S.nextId++, tid, members: mem.map(h => h.id), start: T, outEnd: T + P.w, jobEnd: T + P.w + P.j, end: T + P.total, fail, ...(pay < 1 ? { pay } : {}), ...(tg.boss ? { wk: S.boss.wk, dmg: partyPow(mem) * WB_DMG } : {}) }); // a trip keeps the time and pay it was sent with
   return true;
 }
 function addXP(h, x) {
@@ -1388,6 +1397,7 @@ function addXP(h, x) {
 }
 // a run ends when the party walks back in through the gate
 function ret(p) {
+  if (p.tid === "boss") return wbRet(p);
   const T = p.end, tg = tgOf(p.tid) || { name: "?", ic: "❔", gold: 0, xp: 0, wpn: null, pot: 0, pin: true }, mem = p.members.map(hero).filter(Boolean);
   S.parties.splice(S.parties.indexOf(p), 1);
   let failed = Math.random() < p.fail;
@@ -1402,6 +1412,7 @@ function ret(p) {
     const pk = p.pay || 1; let g = Math.round(baseGold(tg, pk) * goldB() * (0.8 + 0.4 * Math.random()) * (hasCls(mem, "archer") ? 1.1 : 1)), x = tg.xp * (hasCls(mem, "necro") ? 1.1 : 1);
     if (failed) { g = Math.floor(g / 2); if (!hasCls(mem, "necro")) x = x / 2; }
     x = Math.round(x); ev.gold = g; ev.xp = x; to.gold += g; ev.xps = [];
+    incAdd(T, failed ? Math.floor(baseGold(tg, pk) / 2) : baseGold(tg, pk)); // H log (35): base trip gold, no roll, no bonuses
     // XP goes to the equipped class only: full in the starting class, 25% less in any other
     for (const h of mem) { const hx = offClass(h) ? Math.round(x * .75) : x; ev.xps.push([h.name, hx, CLS[h.cls].name]); if (addXP(h, hx)) ev.lv.push(`${h.name} reached ${CLS[h.cls].name} rank ${h.lvl}`); }
     const dm = hasCls(mem, "rogue") ? 2 : 1;
@@ -1436,11 +1447,14 @@ function process(t) {
   for (let guard = 0; guard < 20000; guard++) {
     let best = null;
     for (const p of S.parties) if (p.end <= t && (!best || p.end < best.end)) best = p;
+    const be = S.boss && !S.boss.over ? S.boss.end : Infinity; // the week ends: parties still out count their damage now
+    if (be <= t && (!best || be <= best.end)) { wbFinish(be); n++; continue; }
     const pinAt = S.pinClock + HR;
     if (pinAt <= t && (!best || pinAt <= best.end)) { S.pinClock = pinAt; if (spawnPin()) n++; continue; }
     if (!best) break;
     ret(best); n++;
   }
+  n += wbStart(t);
   AUD.flush();
   return n;
 }
@@ -1517,7 +1531,8 @@ const BN = {
     BN.place();
   },
   // just under the gold bar (and the job strip), on the right
-  place() { const c = $("#banners"), tw = $("#topwrap"); if (!c || !tw) return; c.style.top = Math.max(0, Math.round(tw.getBoundingClientRect().bottom)) + 6 + "px"; },
+  place() { const c = $("#banners"), tw = $("#topwrap"); if (!c || !tw) return; let top = Math.max(0, Math.round(tw.getBoundingClientRect().bottom)) + 6; c.style.top = top + "px";
+    const m = document.getElementById("tg-boss"); if (m && !m.hidden && TAB === "map" && c.offsetHeight) { const a = m.getBoundingClientRect(), b = c.getBoundingClientRect(); if (a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom) { top = Math.round(a.bottom) + 6; c.style.top = top + "px"; } } }, // rc6.2: never over the boss
   sent(p, tg) { BN.add("sent", tg.ic || "❔", `${whoTxt(p.members.map(id => (hero(id) || {}).name || "?"))} set out for ${tg.name}. Home in ${fmtFull(p.end - p.start)}.`); },
   arrived(p) { const tg = tgOf(p.tid) || { name: "?", ic: "❔" }; BN.add("arr", tg.ic || "❔", `${whoTxt(p.members.map(id => (hero(id) || {}).name || "?"))} reached ${tg.name}.`); },
   ret(ev) {
@@ -1793,6 +1808,7 @@ const A = {
     else { if (mapSel.length >= MAXP) return toast(`A party holds up to ${MAXP}.`); mapSel.push(id); }
     syncSel();
   },
+  wbSend() { const t = now(); if (!wbLive(t)) return toast("No boss right now."); if (busy("boss")) return toast("A party is already there."); send = { tid: "boss", sel: mapSel.filter(id => avail(hero(id), t)) }; openWbSend(); },
   tgt(d) {
     const tg = tgOf(d.t); if (!tg) return;
     if (tg.unlock > S.b.hall) return toast(`Unlocks at hall level ${tg.unlock}.`);
@@ -1838,6 +1854,7 @@ const A = {
 function doSend(tid, ids) {
   const t = now(); process(t);
   const tg = tgOf(tid); if (!tg) { toast("That spot is gone."); return false; }
+  if (tid === "boss" && !wbLive(t)) { toast("No boss right now."); return false; }
   if (busy(tid)) { toast("A party is already there."); return false; }
   if (!ids.length) { toast("Pick at least one hero."); return false; }
   if (ids.length > MAXP) { toast(`A party holds up to ${MAXP}.`); return false; }
@@ -1996,6 +2013,7 @@ function openBld(b, focus) {
   openSheet(h, "bld:" + b);
 }
 function openSend() {
+  if (send && send.tid === "boss") return openWbSend();
   const t = now(), tg = tgOf(send.tid); if (!tg) return closeSheet();
   send.sel = send.sel.filter(id => avail(hero(id), t));
   const mem = send.sel.map(hero), free = S.heroes.filter(h => avail(h, t));
@@ -2230,12 +2248,105 @@ function openSettings() {
     <p class="small setnote">Saved on this phone. ${BUILD}</p>`, "settings");
   const b = $("#sheet .box"); if (b) b.classList.add("parch");
 }
+// ---------- weekly world boss (DESIGN 33, rewards 35; rc6.2) ----------
+// Monday 1:00 AM to Sunday 11:59 PM on the phone's clock (it leaves at Monday 12:00 AM; 12:00-1:00 AM the spot is empty).
+// One party at a time (busy), a fixed 1 h job and normal walks, never fails, damage = party power x 10 (fixed when sent,
+// dealt when the party is home; a party still out when the week ends has its damage counted at that moment).
+// HP = 10,000 x Hall level, fixed when the boss appears. Chests at 25/50/75/100%: 2/3/4/6 H gold into the bank when the
+// mark is reached, H computed then (35; the town's real trip income, each chest capped), 1-3 Potions and 1-3 Rations each; the 100% chest adds a weapon one tier above
+// the Shop's best (Legendary at most) for a random hero's class. Gold never shortens any timer here (39).
+const WB_LIST = [{ name: "Ogre King", ic: "🧌" }, { name: "Frost Wyrm", ic: "🐲" }, { name: "Lich", ic: "☠️" }, { name: "Kraken of the Lake", ic: "🐙" }];
+const WB_HP = 10000, WB_DMG = 10, WB_JOB = HR, WB_BASE = 2 * HR, WB_MARKS = [.25, .5, .75, 1], WB_HX = [2, 3, 4, 6], WB_X = 66, WB_Y = 4.5;
+const WB_LADDER = ["rusty", "iron", "steel", "enchanted", "legendary"];
+function wbWeek(t) { // local calendar: DST-safe because every edge is built from local date parts
+  const d = new Date(t), dow = (d.getDay() + 6) % 7, Y = d.getFullYear(), M = d.getMonth(), D = d.getDate() - dow;
+  const mid = new Date(Y, M, D).getTime(), st = new Date(Y, M, D, 1, 0, 0, 0).getTime(), end = new Date(Y, M, D + 7).getTime();
+  return { mid, st, end, wk: dIdx(mid), gap: t < st };
+}
+const wbOpen = () => S.b.hall >= 2; // section 33: campaign chapter 1 or Hall 2; the campaign isn't built yet
+const wbLive = t => !!(S.boss && !S.boss.over && t >= S.boss.st && t < S.boss.end);
+function wbTarget() { const B = S.boss || { ri: 0 }; const L = WB_LIST[B.ri || 0]; return { id: "boss", boss: true, name: L.name, ic: L.ic, base: WB_BASE, fixJob: WB_JOB, need: 1, gold: 0, xp: 0, wpn: null, pot: 0, x: WB_X, y: WB_Y }; }
+// H (DESIGN 35, Delta Oct 9 9:26 PM): the town's real trip income. Every run and pin adds its base gold (before the +-20% roll
+// and before prestige/Archer bonuses; half on a failed run) to an hourly log kept for 7 days. H = last 7 days / 168 h; a save
+// younger than a week divides by its age in hours (at least 24). H is never below 20. Rewards (chests, daily, chores) never count.
+const INC_KEEP = 168, H_MIN = 20;
+function incAdd(T, g) { if (!(g > 0)) return; const h = Math.floor(T / HR), L = S.inc || (S.inc = []); const e = L.find(x => x[0] === h); if (e) e[1] += g; else L.push([h, g]); incTrim(T); }
+function incTrim(t) { const lo = Math.floor(t / HR) - INC_KEEP + 1; if (S.inc) S.inc = S.inc.filter(x => x[0] >= lo); }
+const incSum = t => { const hi = Math.floor(t / HR), lo = hi - INC_KEEP + 1; return (S.inc || []).reduce((a, x) => x[0] >= lo && x[0] <= hi ? a + x[1] : a, 0); };
+const incDiv = t => Math.min(INC_KEEP, Math.max(24, (t - (S.created || t)) / HR));
+const wbH = (t = now()) => Math.max(H_MIN, Math.round(incSum(t) / incDiv(t)));
+// hard cap (35): no single chest pays more than 50% of the next Hall upgrade, or 5,000 at Hall 5
+const wbCap = () => S.b.hall < 5 ? Math.round(UPC[S.b.hall - 1] * .5) : 5000;
+function wbTier() { const shop = TIER_KEYS.filter(k => TIERS[k].price && TIERS[k].shop <= S.b.shop); const b = shop.reduce((a, k) => Math.max(a, WB_LADDER.indexOf(k)), 0); return WB_LADDER[Math.min(WB_LADDER.length - 1, b + 1)]; }
+function wbStart(t) {
+  if (!S.boss && !wbOpen()) return 0; const w = wbWeek(t);
+  if (S.boss && !S.boss.over && t >= S.boss.end) wbFinish(S.boss.end);
+  if (!wbOpen() || w.gap || (S.boss && S.boss.wk === w.wk)) return 0;
+  const max = WB_HP * S.b.hall;
+  S.boss = { wk: w.wk, ri: Math.floor(w.wk / 7) % WB_LIST.length, st: w.st, end: w.end, hall: S.b.hall, max, hp: max, paid: 0, got: [] };
+  return 1;
+}
+function wbFinish(T) { const B = S.boss; for (const p of S.parties) if (p.tid === "boss" && p.wk === B.wk && !p.hit) { p.hit = 1; wbHit(p, T); } B.over = 1; }
+function wbHit(p, T) {
+  const B = S.boss; if (!B || B.wk !== p.wk) return;
+  B.hp = Math.max(0, B.hp - (p.dmg || 0));
+  while (B.paid < 4 && B.max - B.hp >= Math.ceil(B.max * WB_MARKS[B.paid])) wbChest(B.paid++, T);
+}
+function wbChest(i, T) {
+  const B = S.boss, H = wbH(T), raw = Math.round(WB_HX[i] * H * goldB()), g = Math.min(wbCap(), raw), /* order (35): H multiple, then prestige, then the cap */ pot = 1 + Math.floor(Math.random() * 3), rat = 1 + Math.floor(Math.random() * 3);
+  const w = i === 3 ? wOf(wbTier(), dCls()) : null;
+  S.bank.gold += g; S.bank.potions += pot; S.bank.rations = (S.bank.rations || 0) + rat; if (w) S.bank.weapons.push(w);
+  const nm = WB_LIST[B.ri].name; S.bank.from = S.bank.from || []; if (!S.bank.from.includes(nm)) S.bank.from.push(nm);
+  B.got.push({ i, T, H, raw, g, pot, rat, w });
+  if (LIVE && !document.hidden) toast(`${WB_LIST[B.ri].name}: ${Math.round(WB_MARKS[i] * 100)}% chest! ${num(g)} gold${w ? " and a " + wName(w) : ""} in the bank.`);
+}
+function wbRet(p) {
+  const T = p.end, mem = p.members.map(hero).filter(Boolean), L = WB_LIST[(S.boss || { ri: 0 }).ri];
+  S.parties.splice(S.parties.indexOf(p), 1);
+  if (!p.hit) { p.hit = 1; wbHit(p, T); }
+  for (const h of mem) h.vig = Math.min(VIG_MAX, vigOf(h) + 1); // a finished trip: +1 Vigor; no XP, no gold, never a knockout
+  if (mem.length) S.gate.push({ tid: "boss", name: L.name, ic: L.ic, members: mem.map(h => h.id), reason: "Back home", loot: null, T });
+  const ev = { live: LIVE && !document.hidden, T, failed: false }; AUD.ret(ev);
+  if (ev.live) BN.add("ret", L.ic, `${whoTxt(mem.map(h => h.name))} hit the ${L.name} for ${num(p.dmg || 0)}.`);
+}
+function wbCard(t) {
+  if (!wbOpen() && !S.boss) return `<div class="card wbcard" id="wbCard"><div class="row"><span class="tic">🐲</span><div class="grow"><h3>World boss</h3><div class="small">${IC.lock} Unlocks at Hall 2. A giant foe every week.</div></div></div></div>`;
+  if (!wbLive(t)) return `<div class="card wbcard" id="wbCard"><div class="row"><span class="tic">🐲</span><div class="grow"><h3>World boss</h3><div class="small" id="wbGap">A new foe arrives at 1:00 AM.</div></div></div></div>`;
+  const B = S.boss, L = WB_LIST[B.ri], q = S.parties.find(p => p.tid === "boss"), pc = B.hp / B.max * 100;
+  const marks = WB_MARKS.map((m, i) => `<span class="wbm${i < B.paid ? " got" : ""}" style="left:${m * 100}%">${i < B.paid ? IC.check : IC.bag}</span>`).join("");
+  return `<div class="card wbcard" id="wbCard"><div class="row"><span class="tic">${L.ic}</span><div class="grow"><h3>${esc(L.name)}</h3><div class="small">Leaves in <b data-dend="${B.end}">${dHM(B.end - t)}</b> · damage = power × 10 · never fails</div></div></div>
+    <div class="wbbar"><div class="wbfill" style="width:${pc.toFixed(2)}%"></div><span class="wbhp" id="wbHP">${num(B.hp)} / ${num(B.max)}</span></div><div class="wbmarks">${marks}</div>
+    <div class="small" style="margin-top:22px">Chests at 25%, 50%, 75% and 100% go to the bank. The last one holds a ${TIERS[wbTier()].name} weapon.</div>
+    <div class="btns">${q ? `<span class="small grow">${IC.swords} A party is fighting · home in <b data-end="${q.end}">${fmt(q.end - t)}</b></span>` : `<button class="go" data-act="wbSend" id="wbSend" ${B.hp > 0 ? "" : "disabled"}>${B.hp > 0 ? "Send a party" : "Defeated!"}</button>`}</div></div>`;
+}
+const fmtC = ms => { const s = Math.round(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + "h " : "") + (h || m ? m + "m " : "") + x + "s"; }; // compact, one line at 360 px
+function openWbSend() {
+  const t = now(); if (!wbLive(t)) { closeSheet(); toast("No boss right now."); return; }
+  const tg = tgOf("boss"), B = S.boss; send.sel = send.sel.filter(id => avail(hero(id), t));
+  const mem = send.sel.map(hero), free = S.heroes.filter(h => avail(h, t));
+  let h = `<div class="pophead"><span class="tic">${tg.ic}</span><div class="grow"><h3>${esc(tg.name)}</h3><div class="small">HP <b>${num(B.hp)}</b> / ${num(B.max)} · damage = power × 10 · never fails</div></div></div><div class="chips" style="margin-top:10px">`;
+  if (!free.length) h += `<p>Nobody is free right now.</p>`;
+  free.forEach(x => h += `<button class="chip ${send.sel.includes(x.id) ? "on" : ""}" data-act="sendSel" data-h="${x.id}"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${send.sel.includes(x.id) ? IC.check.replace("<svg", '<svg width="16" height="16" style="background:#2fa56a;border-radius:50%"') : ""}${esc(x.name)}</button>`);
+  h += `</div>`;
+  if (mem.length) { const P = runParts(mem, tg), pw = partyPow(mem);
+    h += `<div class="card" style="margin-top:12px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="sendTime" style="white-space:nowrap">${fmtC(P.total)}</div>${P.fast ? `<span class="fttag">½ walks until ${ftDay()}</span>` : ""}</div><div class="grow">Damage <div class="pwbig pw-g" id="wbDmg">${num(pw * WB_DMG)}</div></div></div>
+      <div class="split"><div>${IC.boot}<span id="sendOut">${fmtC(P.w)}</span></div><div>${IC.swords}<span id="sendJob">${fmtC(P.j)}</span></div><div>${IC.boot.replace('class="ic"', 'class="ic flip"')}<span id="sendHome">${fmtC(P.w)}</span></div></div>
+      <div class="small">No knockouts, no trip gold or XP. Potions and Rations stay with the heroes.</div></div>`; }
+  h += `<div class="btns"><button class="go big" data-act="sendGo" ${mem.length ? "" : "disabled"}>Send</button><button class="alt" data-act="close">Cancel</button></div>`;
+  openSheet(h, "send");
+}
+function wbMapSync(t) { // the giant at the map's top edge, shown while the boss is here
+  const el = document.getElementById("tg-boss"); if (!el) return; const on = wbLive(t); el.hidden = !on; if (!on) return;
+  const B = S.boss, L = WB_LIST[B.ri], k = B.wk + ":" + B.hp; if (el.dataset.k === k) return; el.dataset.k = k;
+  el.innerHTML = `<span class="wbic">${L.ic}</span><span class="sign">${esc(L.name)}<span class="wbmini"><i style="width:${(B.hp / B.max * 100).toFixed(1)}%"></i></span></span>`;
+}
 function renderTown(t) {
   let h = dailyCard(t) + sndRow();
   if (needNudge(t)) h += `<div class="card tip"><b>Back up your town.</b> It's been ${S.lastBackup ? backupAgo(t) : "over a week"} since your last save code. Tap <b>Copy save code</b> in the hall and keep it somewhere safe, in case the link changes.<div class="btns"><button class="go" data-act="copyCode">Copy save code</button><button class="alt" data-act="nudgeOff">Not now</button></div></div>`;
   if (S.tip) h += `<div class="card tip"><b>Tip:</b> on the <b>Map</b>, tap your two heroes by the gate, then tap <b>Rat Cellar</b> and Send. They keep going while the app is closed.</div>`;
   h += `<div class="card"><div class="row"><div class="grow"><h3>🏦 Bank</h3></div>${bankHas() ? `<span class="badge coin" style="position:static">${IC.gold}</span>` : ""}</div>${bankBody(t)}</div>`;
   h += choreCard(t);
+  h += wbCard(t);
   if (S.parties.length) {
     h += `<h2>Out now</h2>`;
     S.parties.slice().sort((a, b) => a.end - b.end).forEach(p => {
@@ -2372,14 +2483,14 @@ function render() {
   lastSig = sig(t); updTimers(t); BN.sync(); BN.place(); BN.badge();
 }
 function sig(t) {
-  return [dIdx(t), dReady(t) ? "D" : "", S.chores.list.length, S.parties.map(p => p.id + phase(p, t)).join(","), S.gate.map(g => g.reason + g.members.length + (g.loot ? "L" : "")).join(","), S.heroes.map(h => h.id + (isKO(h, t) ? "k" : "") + (h.weapon || "") + (h.supply ? h.supply.k + h.supply.n : "") + (canHeal(h, t) ? "h" : "")).join(","), S.up ? S.up.end + (upReady(t) ? "r" : "") : 0, Object.values(S.b).join(""), bankFull(t), Math.floor(bankHours(t)), S.events.length, backupAgo(t), needNudge(t), S.pins.map(p => p.id).join(","), S.gob ? S.gob.on.join(".") + "/" + S.gob.n : "", bankHas(), S.gold >= 50, S.potions, S.weapons.length].join("|");
+  return [S.boss ? S.boss.wk + ":" + S.boss.hp + ":" + S.boss.paid + (S.boss.over ? "o" : "") : "", wbLive(t) ? "B" : "", dIdx(t), dReady(t) ? "D" : "", S.chores.list.length, S.parties.map(p => p.id + phase(p, t)).join(","), S.gate.map(g => g.reason + g.members.length + (g.loot ? "L" : "")).join(","), S.heroes.map(h => h.id + (isKO(h, t) ? "k" : "") + (h.weapon || "") + (h.supply ? h.supply.k + h.supply.n : "") + (canHeal(h, t) ? "h" : "")).join(","), S.up ? S.up.end + (upReady(t) ? "r" : "") : 0, Object.values(S.b).join(""), bankFull(t), Math.floor(bankHours(t)), S.events.length, backupAgo(t), needNudge(t), S.pins.map(p => p.id).join(","), S.gob ? S.gob.on.join(".") + "/" + S.gob.n : "", bankHas(), S.gold >= 50, S.potions, S.weapons.length].join("|");
 }
 function updTimers(t) {
   document.querySelectorAll("[data-end]").forEach(el => el.textContent = fmt(+el.dataset.end - t));
   document.querySelectorAll("[data-dend]").forEach(el => el.textContent = dHM(+el.dataset.dend - t));
   document.querySelectorAll("[data-pg]").forEach(el => { const [a, b] = el.dataset.pg.split(",").map(Number); el.style.width = Math.min(100, (t - a) / (b - a) * 100) + "%"; });
   const tc = $("#tclock"); if (tc) tc.textContent = "+" + fmt(S.offset || 0);
-  if (TAB === "map" && SC) clampBubs();
+  if (TAB === "map" && SC) { clampBubs(); wbMapSync(t); BN.place(); }
 }
 function tick() {
   if (!S) return;
@@ -2558,6 +2669,7 @@ function buildScene() {
     const a = ART[tg.id];
     tl += `<button class="tg" data-act="tgt" data-t="${tg.id}" id="tg-${tg.id}" style="left:${(X(tg.x) - a.ex * k).toFixed(1)}px;top:${(Y(tg.y) - a.ey * k).toFixed(1)}px;width:${(a.w * k).toFixed(1)}px;height:${(a.h * k).toFixed(1)}px;z-index:${Math.round(tg.y)}"><svg class="art" viewBox="0 0 ${a.w} ${a.h}">${paint(a.s)}</svg><span class="sign ${tg.type}" style="left:${(a.ex * k).toFixed(1)}px;top:${((a.ey + 6) * k).toFixed(1)}px;pointer-events:auto"></span></button>`;
   }
+  tl += `<button class="wbmark" data-act="wbSend" id="tg-boss" hidden aria-label="World boss" style="left:${(X(WB_X) - 48 * k).toFixed(1)}px;top:${(Y(WB_Y) - 26 * k).toFixed(1)}px;width:${(96 * k).toFixed(1)}px;z-index:3"></button>`;
   $("#lyT").innerHTML = tl;
   for (const tg of TG) SC.tg[tg.id] = { el: $("#tg-" + tg.id), key: "" };
   placeVP(); panInit($("#vp")); camHome(0);
@@ -2571,7 +2683,7 @@ const GOB_HEAD = paint(`<svg class="ghs" viewBox="-17 -16 34 30" aria-hidden="tr
 // walking route from the village square to an entrance, sampled by arc length
 function route(tid) {
   if (SC.routes[tid]) return SC.routes[tid];
-  let P = SC.G.paths[tid];
+  let P = tid === "boss" ? SC.G.paths.hollow.slice(0, -1).concat([[SC.X(WB_X), SC.Y(WB_Y)]]) : SC.G.paths[tid];
   if (!P) { const pin = S.pins.find(p => p.id === tid); if (!pin) return null; P = SC.G.trails[pin.spot]; }
   const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
   el.setAttribute("d", crPath(P)); $("#routes").appendChild(el);
@@ -2915,7 +3027,7 @@ bootCheck();
 if ("serviceWorker" in navigator && window.isSecureContext && !(TEST && QS.has("nosw"))) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => { }); });
 }
-window.TOWN = TEST ? { PATCH: MYPATCH, pcmp, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
+window.TOWN = TEST ? { PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
 </script>
 </body>
 </html>
