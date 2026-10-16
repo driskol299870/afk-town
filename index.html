@@ -440,7 +440,7 @@ html.clear #toast{bottom:176px}
 "use strict";
 const KEY = "afktown.save", MIN = 60e3, HR = 3600e3, SEC = 1e3;
 const TEST = /[?&]test(=|&|$)/.test(location.search);
-const BUILD = "rc6.2.1"; // the build tag on the Town screen; bump it each build
+const BUILD = "rc6.2.2"; // the build tag on the Town screen; bump it each build
 // ---------- sound and music (DESIGN 20, rc5.6): everything is made here in code with Web Audio. No files, no samples. ----------
 // rc5.8.2 (mark 69): music is on by default and fades in as the town shows; if the browser blocks audio it starts on the
 // first gesture of any kind (no prompt). Mute wins and lives in localStorage on this phone only (never in the save or the save code).
@@ -1357,7 +1357,7 @@ function failChance(mem, tg) {
 // Fast travel (DESIGN 27): trips (walk out, job, walk home) take half time until FAST_TRAVEL_END, 12:00 AM PT Nov 9 2026 (end of Nov 8 PT,
 // 30 days after going live). One line to extend or end it. The phone's clock decides. Healing, upgrades, bank cap, goblins: not halved.
 const FAST_TRAVEL_END = Date.UTC(2026, 10, 9, 8, 0, 0);
-const fastOn = () => false; // rc6.2.1: the fast-travel event is removed (Kurtis, Oct 16): trips run at normal time and pay in full; parties already out keep the pay they were sent with
+const fastOn = () => true; // rc6.2.2 (Kurtis, Oct 16): half-time trips are permanent and always pay in full; parties already out keep the pay they were sent with
 function runParts(mem, tg, t) {
   const f = fastOn(t === undefined ? now() : t) ? .5 : 1; // halved after everything (off-class minute too), walks capped at 5 min, the job at 1 h (DESIGN 27)
   const n = Math.max(1, Math.min(MAXP, mem.length)), base = tg.base / SEC;
@@ -1373,7 +1373,7 @@ function runParts(mem, tg, t) {
   const o = { w, j, total: w + j + w, w0, j0, rat, pot }; if (f !== 1) o.fast = true; return o;
 }
 // pay while fast travel is on (DESIGN 27): gold and the weapon/Potion drop chances x fast time / normal time for this exact party; XP stays full
-const payScale = (mem, tg, t) => { const P = runParts(mem, tg, t); return P.fast ? P.total / runParts(mem, tg, Infinity).total : 1; };
+const payScale = () => 1; // rc6.2.2: full pay always
 const baseGold = (tg, k) => k === undefined || k === 1 ? tg.gold : Math.round(tg.gold * k); // rounded to the coin before the +-20% roll
 const pctD = f => (Math.round(f * 1000) / 10) + "%";
 const runTime = (mem, tg) => runParts(mem, tg).total;
@@ -1386,7 +1386,7 @@ function useSupply(h) { h.supply.n--; if (h.supply.n <= 0) h.supply = null; }
 function launch(tid, ids, T) {
   const tg = tgOf(tid), mem = ids.map(hero).filter(Boolean);
   if (!tg || !mem.length) return false; // a full bank never stops a trip (rc5.3): the loot waits at the gate
-  const fail = tg.boss ? 0 : failChance(mem, tg), P = runParts(mem, tg, T), pay = tg.boss ? 1 : P.fast ? P.total / runParts(mem, tg, Infinity).total : 1;
+  const fail = tg.boss ? 0 : failChance(mem, tg), P = runParts(mem, tg, T), pay = 1; // rc6.2.2: full pay always
   if (!tg.boss) { const rc = mem.find(h => carries(h, "ration")); if (rc) useSupply(rc);
   const pc = mem.find(h => carries(h, "potion")); if (pc) useSupply(pc); } // the boss uses no items
   S.parties.push({ id: S.nextId++, tid, members: mem.map(h => h.id), start: T, outEnd: T + P.w, jobEnd: T + P.w + P.j, end: T + P.total, fail, ...(pay < 1 ? { pay } : {}), ...(tg.boss ? { wk: S.boss.wk, dmg: partyPow(mem) * WB_DMG } : {}) }); // a trip keeps the time and pay it was sent with
@@ -1994,7 +1994,7 @@ function openSend() {
   const pw = partyPow(mem), ratio = pw / tg.need, f = mem.length ? failChance(mem, tg) : 0;
   if (mem.length) {
     const P = runParts(mem, tg);
-    h += `<div class="card" style="margin-top:12px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="sendTime" style="white-space:nowrap">${fmtC(P.total)}</div></div><div class="grow">Power <div><span class="pwbig ${pwCls(ratio)}" id="sendPow">${IC.fist}${pw}</span> <span class="need">/ ${tg.need}</span></div></div></div>
+    h += `<div class="card" style="margin-top:12px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="sendTime" style="white-space:nowrap">${fmtC(P.total)}</div>${P.fast ? `<span class="fttag" id="ftTag">½ time</span>` : ""}</div><div class="grow">Power <div><span class="pwbig ${pwCls(ratio)}" id="sendPow">${IC.fist}${pw}</span> <span class="need">/ ${tg.need}</span></div></div></div>
       <div class="split"><div>${IC.boot}<span id="sendOut">${fmtC(P.w)}</span>${P.rat ? ` ${IC.ration}<s class="small">${fmtC(P.w0)}</s>` : ""}</div><div>${IC.swords}<span id="sendJob">${fmtC(P.j)}</span>${P.pot ? ` ${IC.potion}<s class="small">${fmtC(P.j0)}</s>` : ""}</div><div>${IC.boot.replace('class="ic"', 'class="ic flip"')}<span id="sendHome">${fmtC(P.w)}</span>${P.rat ? ` ${IC.ration}<s class="small">${fmtC(P.w0)}</s>` : ""}</div></div>
       ${mem.some(offClass) ? `<div class="small offmin" id="offMin">${IC.swords} +${mem.filter(offClass).length} min job · off-class: ${mem.filter(offClass).map(x => esc(x.name) + " (" + CLS[x.cls].name + ")").join(", ")}</div>` : ""}
       <div class="failp small" id="sendFail">${pct(f)} chance to fail</div>
@@ -2298,7 +2298,7 @@ function openWbSend() {
   free.forEach(x => h += `<button class="chip ${send.sel.includes(x.id) ? "on" : ""}" data-act="sendSel" data-h="${x.id}"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${send.sel.includes(x.id) ? IC.check.replace("<svg", '<svg width="16" height="16" style="background:#2fa56a;border-radius:50%"') : ""}${esc(x.name)}</button>`);
   h += `</div>`;
   if (mem.length) { const P = runParts(mem, tg), pw = partyPow(mem);
-    h += `<div class="card" style="margin-top:12px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="sendTime" style="white-space:nowrap">${fmtC(P.total)}</div></div><div class="grow">Damage <div class="pwbig pw-g" id="wbDmg">${num(pw * WB_DMG)}</div></div></div>
+    h += `<div class="card" style="margin-top:12px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="sendTime" style="white-space:nowrap">${fmtC(P.total)}</div>${P.fast ? `<span class="fttag">½ walks</span>` : ""}</div><div class="grow">Damage <div class="pwbig pw-g" id="wbDmg">${num(pw * WB_DMG)}</div></div></div>
       <div class="split"><div>${IC.boot}<span id="sendOut">${fmtC(P.w)}</span></div><div>${IC.swords}<span id="sendJob">${fmtC(P.j)}</span></div><div>${IC.boot.replace('class="ic"', 'class="ic flip"')}<span id="sendHome">${fmtC(P.w)}</span></div></div>
       <div class="small">No knockouts, no trip gold or XP. Potions and Rations stay with the heroes.</div></div>`; }
   h += `<div class="btns"><button class="go big" data-act="sendGo" ${mem.length ? "" : "disabled"}>Send</button><button class="alt" data-act="close">Cancel</button></div>`;
