@@ -248,6 +248,8 @@ html.mapon,html.mapon body{overflow:hidden;overscroll-behavior:none}
 .hf .chk{position:absolute;left:50%;top:-14px;margin-left:-13px;width:26px;height:26px;border-radius:50%;background:var(--good);border:2.5px solid var(--ink);display:none;align-items:center;justify-content:center;box-shadow:0 2px 0 var(--ink)}
 .hf.sel .chk{display:flex}
 .hf .chk svg{width:16px;height:16px}
+.hf .dummy{position:absolute;right:-2px;bottom:4px;pointer-events:none;animation:dumSw 1.2s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes dumSw{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(8deg)}}
 .hf .eqb{position:absolute;left:50%;top:-16px;margin-left:-11px;width:22px;height:22px;border-radius:50%;background:#e8eefc;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center}
 .hf .eqb svg{width:14px;height:14px}
 .hf.sel .eqb{margin-left:4px}.hf.sel:has(.eqb) .chk{margin-left:-28px}
@@ -450,7 +452,7 @@ html.clear #toast{bottom:176px}
 "use strict";
 const KEY = "afktown.save", MIN = 60e3, HR = 3600e3, SEC = 1e3;
 const TEST = /[?&]test(=|&|$)/.test(location.search);
-const BUILD = "rc6.3"; // the build tag on the Town screen; bump it each build
+const BUILD = "rc6.3.1"; // the build tag on the Town screen; bump it each build
 // ---------- sound and music (DESIGN 20, rc5.6): everything is made here in code with Web Audio. No files, no samples. ----------
 // rc5.8.2 (mark 69): music is on by default and fades in as the town shows; if the browser blocks audio it starts on the
 // first gesture of any kind (no prompt). Mute wins and lives in localStorage on this phone only (never in the save or the save code).
@@ -1196,7 +1198,7 @@ const PIN_ART = { w: 48, h: 48, ex: 24, ey: 44 };
 // where each path leaves, and the wooden gate arch on the south road.
 const VIL = { x: 50, y: 50, cy: 4, rx: 165, ry: 96, sq: [0, 20, 110, 62], gate: [0, 96], start: [0, 20],
   b: { hall: [-86, -14], shop: [86, -14], bank: [-86, -206], infirmary: [86, -206], bakery: [-86, -398], garden: [86, -398], smithy: [-86, -590] }, // rc6.3 (34): 7 big buildings in two streets north of the square, one slot each, never overlapping
-  home: [[-30, 62], [26, 62], [-30, 128], [26, 128], [82, 62], [82, 128], [-30, 194], [26, 194], [82, 194], [138, 62], [-30, 260], [-86, 260]] /* rc6.3: 12 spots, one per hero */, vil: [[0, -40], [0, -96], [0, -152], [0, -208], [0, -264]] /* rc6.3: villagers stroll up the lane between the two streets */, cart: [-160, 42] };
+  home: [[-30, 62], [26, 62], [-30, 128], [26, 128], [82, 62], [82, 128], [-30, 194], [26, 194], [82, 194], [138, 62], [-30, 260], [-86, 260]] /* rc6.3: 12 spots, one per hero */, vil: [[0, -40], [0, -96], [0, -152], [0, -208], [0, -264]] /* rc6.3: villagers stroll up the lane between the two streets */, cart: [-148, 42] };
 // each target's own winding dirt path: waypoints from the square out through its own fence gap to the entrance
 const PATHS = {
   rat: [[-30, 50], [-95, 79], [-78, 105]],
@@ -1325,7 +1327,8 @@ const hero = id => S.heroes.find(h => h.id === id);
 const inParty = id => S.parties.some(p => p.members.includes(id));
 const partyOf = id => S.parties.find(p => p.members.includes(id));
 const isKO = (h, t) => h.koEnd > t;
-const avail = (h, t) => h && !inParty(h.id) && !isKO(h, t);
+const inYard = id => !!(S.yard && S.yard.s.some(y => y.h === id));
+const avail = (h, t) => h && !inParty(h.id) && !isKO(h, t) && !inYard(h.id); // rc6.3.1: a hero in the training yard can't be sent until taken out
 const busy = tid => S.parties.some(p => p.tid === tid);
 const capMs = () => (24 + S.b.hall - 1) * HR + PR_CAP * prN();
 const recovMs = () => Math.round(REC_H[S.b.infirmary - 1] * HR * (1 - .03 * vLvlAt("infirmary"))); // rc6.3 (34): a healer villager cuts 3% per villager level
@@ -1606,7 +1609,7 @@ const TIP_LINES = {
   finish: "Finishes the upgrade so the new level starts.",
   job: "Jumps to the thing that needs you.",
   recruit: "Hires this hero for the gold shown.",
-  reroll: "Shows three new heroes to pick from.",
+  reroll: "Shows four new heroes to pick from.",
   unequipW: "Takes the weapon off and puts it in stores.",
   equipBest: "Gives each hero the best free weapon.",
   supAdd: "Adds one to this hero's pack.",
@@ -1717,21 +1720,23 @@ const A = {
     else if (k === "bounty" || k === "cart") { if (TAB !== "town") { TAB = "town"; closeSheet(); render(); } else closeSheet(); const el = $(k === "bounty" ? "#btyCard" : "#merCard"); if (el) { el.scrollIntoView({ block: "center" }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } }
     else if (k === "pin") { if (TAB !== "map") { TAB = "map"; closeSheet(); render(); } else closeSheet(); jumpPin(d.p); }
   },
-  recruitOpen() { if (S.b.hall < 2) return; if (!S.offers || S.offers.some(o => !hireOK(o.cls))) genOffers(); save(); openRecruit(); },
+  recruitOpen() { if (S.b.hall < 2) return; process(now()); save(); openRecruit(); },
+  yardGo(d) { const t = now(); process(t); const x = hero(+d.h); if (!x) return; const y = S.yard.s.find(q => q.h === x.id);
+    if (y) { if (!yardDone(y, t)) return; y.start = y.at = Math.max(t, y.at, yardMark(x.id)); y.xp = 0; y.c = 0; commit(); reopen(); return; }
+    if (!avail(x, t) || S.yard.s.length >= yardSpots()) return toast("No free spot in the yard.");
+    S.gate.forEach(g => g.members = g.members.filter(id => id !== x.id)); S.gate = S.gate.filter(g => g.members.length || g.loot);
+    { const st = Math.max(t, yardMark(x.id)); S.yard.s.push({ h: x.id, start: st, at: st, c: 0, xp: 0 }); } commit(); reopen(); toast(`${x.name} is training.`); },
+  yardOut(d) { const t = now(); process(t); const x = hero(+d.h); { const y = S.yard.s.find(q => q.h === +d.h); if (y) { S.yard.m = S.yard.m || {}; S.yard.m[y.h] = Math.max(S.yard.m[y.h] || 0, y.at); } } S.yard.s = S.yard.s.filter(q => q.h !== +d.h); commit(); reopen(); if (x) toast(`${x.name} stopped training.`); },
   recruit(d) {
-    const o = S.offers && S.offers[+d.i]; if (!o) return;
+    process(now()); const o = S.rb.offers && S.rb.offers[+d.i]; if (!o) return;
     if (S.heroes.length >= SLOTS[S.b.hall - 1]) return toast("No free slot. Upgrade the hall.");
     if (!hireOK(o.cls)) return toast(`You already have ${CLS_CAP} ${CLS[o.cls].name}s.`);
-    const c = recruitCost(); if (S.gold < c) return toast("Not enough gold.");
-    S.gold -= c; S.paid++; { const nh = makeHero(S, o.cls, o.seed, o.name); nh.weapon = "starter"; S.heroes.push(nh); } S.offers = null; // recruits arrive at rank 1 with a Starter weapon of their class, like the start pair (DESIGN 28)
+    const c = offerCost(o); if (S.gold < c) return toast("Not enough gold.");
+    const vr = o.vet ? vetRank() : 1; S.gold -= c; S.paid++; { const nh = makeHero(S, o.cls, o.seed, o.name); nh.weapon = "starter"; if (o.vet) { nh.lvl = vr; nh.xp = 0; nh.skill = Math.min(SKILL_MAX, vr - 1); syncRank(nh); S.rb.vet[S.rb.key.split("#")[0]] = 1; } S.heroes.push(nh); }
+    S.rb.offers.splice(+d.i, 1); if (o.vet) S.rb.offers.forEach(q => delete q.vet); // recruits arrive at rank 1 with a Starter weapon of their class, like the start pair (DESIGN 28)
     closeSheet(); commit(); toast(o.name + " joined the town!");
   },
-  reroll() {
-    const today = new Date(now()).toDateString();
-    if (S.freeDay !== today) S.freeDay = today;
-    else { if (S.gold < REROLL_PRICE) return toast("Not enough gold."); S.gold -= REROLL_PRICE; }
-    genOffers(); save(); render(); openRecruit();
-  },
+  reroll() { process(now()); if (S.gold < REROLL_PRICE) return toast("Not enough gold."); S.gold -= REROLL_PRICE; S.rb.n++; rbRoll(); rbFix(); commit(); openRecruit(); }, // buys new faces, never time
   copyCode() {
     S.lastBackup = now(); save(); render(); const code = encodeSave();
     const done = () => toast("Save code copied.");
@@ -1752,7 +1757,7 @@ const A = {
   trank() { if (!TEST) return; tRanks(S.heroes, 1); commit(); toast("Rank +1 for every hero."); },
   trank10() { if (!TEST) return; tRanks(S.heroes, 10); commit(); toast("Rank +10 for every hero."); },
   trankmax() { if (!TEST) return; const x = tSelHero(); if (!x) return; x.lvl = RANK_MAX; x.xp = 0; syncRank(x); x.skill = SKILL_MAX; commit(); toast(`${x.name}: rank ${RANK_MAX}.`); },
-  thall() { if (!TEST) return; S.b.hall = Math.min(5, S.b.hall + 1); if (S.offers && S.offers.some(o => !clsOpen(o.cls))) S.offers = null; commit(); toast("Hall is now level " + S.b.hall + "."); },
+  thall() { if (!TEST) return; S.b.hall = Math.min(5, S.b.hall + 1); commit(); toast("Hall is now level " + S.b.hall + "."); },
   heroPanel(d) { openPanel(+d.h); },
   prestige(d) { openPrestige(+d.h); },
   prestigeGo(d) { const x = hero(+d.h); if (!doPrestige(+d.h)) return; closeSheet(); commit(); AUD.cue("claim"); toast(`${x.name} prestiged. Town gold +${Math.round(prN() * PR_GOLD * 100)}%.`); },
@@ -1883,7 +1888,6 @@ function doSend(tid, ids) {
   S.tip = false; if (tid !== "boss") btyAdd("trips"); commit(); AUD.cue("send"); { const p = S.parties.find(q => q.tid === tid && q.start === t); if (p) { ARR.delete(p.id); BN.sent(p, tg); } }
   return true;
 }
-function genOffers() { const open = CLS_KEYS.filter(hireOK); S.offers = open.length ? [0, 1, 2].map(() => ({ cls: pick(open), seed: rint(), name: pick(NAMES) })) : []; }
 // a recruit costs 100 for slot 3, 250 for slot 4, 500 for slot 5 and 1,000 for slot 6
 const art = w => /^[aeiou]/i.test(w) ? "an" : "a";
 const recruitCost = () => RECRUIT[Math.max(0, Math.min(RECRUIT.length - 1, S.heroes.length - 2))];
@@ -1909,6 +1913,70 @@ const VSPOTS = ["bakery", "garden", "smithy", "infirmary"];
 const PROD = { bakery: { k: "rations", one: "Ration", base: 60, step: 4 }, garden: { k: "potions", one: "Potion", base: 90, step: 5 } }, PROD_MAX = 10;
 const FORGE_MS = 2 * HR, FORGE_STEP = .08, FORGE_LADDER = ["rusty", "iron", "steel", "enchanted", "legendary"];
 const DAY_MS = 24 * HR;
+function v631(s) { // rc6.3.1 fields
+  if (!s.yard || !Array.isArray(s.yard.s)) s.yard = { s: [] };
+  if (!s.rb || typeof s.rb !== "object") s.rb = { key: "", last: 0, n: 0, offers: [], vet: {}, vlast: 0 };
+  delete s.offers; delete s.freeDay;
+}
+
+// ---------- rc6.3.1 (DESIGN 37): training yard ----------
+// 1 spot per Hall level. XP = 15 + 5 x Hall level per hour (+10% with a Necromancer in the yard), carried each minute, up to 8 h a session.
+// No gold, no items, no skip of any kind; fast travel doesn't change it. Forward-only: time before the last tick is never counted again.
+const YARD_MAX_MS = 8 * HR, yardBase = () => 15 + 5 * S.b.hall, yardRate = h => yardBase() * (h && h.cls === "necro" ? 1.1 : 1); // the Necromancer's +10% is its own only
+// high-water marks: S.yard.hw (latest yard time ever counted) and S.yard.m[heroId]; no session or XP ever starts before them
+const yardMark = id => Math.max(S.yard.hw || 0, (S.yard.m || {})[id] || 0);
+const yardSpots = () => Math.min(5, S.b.hall);
+function yardSync(t) {
+  if (!S.yard) S.yard = { s: [] };
+  S.yard.s = S.yard.s.filter(y => { const h = hero(y.h); return h && !inParty(h.id) && !isKO(h, t); });
+  if (!S.yard.m) S.yard.m = {};
+  const hw0 = S.yard.hw || 0;
+  for (const y of S.yard.s) {
+    const mk = S.yard.m[y.h] || 0; if (y.at < mk) y.at = mk; // a running session's own clock only moves forward; hw guards new starts
+    const x = hero(y.h), to = Math.min(t, y.start + YARD_MAX_MS), mins = Math.floor((to - y.at) / MIN);
+    if (mins <= 0) continue; // nothing before the mark, nothing for a clock set back
+    y.at += mins * MIN; S.yard.m[y.h] = Math.max(S.yard.m[y.h] || 0, y.at); S.yard.hw = Math.max(S.yard.hw || 0, y.at);
+    y.c = (y.c || 0) + yardRate(x) * mins / 60; const w = Math.floor(y.c + 1e-9);
+    if (w > 0) { y.c -= w; y.xp = (y.xp || 0) + w; addXP(x, w); }
+  }
+  S.yard.hw = Math.max(hw0, t); // the latest yard time ever seen: no session restarts before it
+}
+const yardDone = (y, t) => y.at >= y.start + YARD_MAX_MS;
+const yardSig = t => S.yard ? S.yard.s.map(y => y.h + ":" + (y.xp || 0) + (yardDone(y, t) ? "d" : "")).join(",") : "";
+const DUMMY = '<svg viewBox="0 0 20 30" width="18" height="27"><path d="M10 12V29M4 29h12" stroke="#7a4a2a" stroke-width="2.5" stroke-linecap="round"/><path d="M3 13h14" stroke="#c9a14a" stroke-width="3" stroke-linecap="round"/><ellipse cx="10" cy="15" rx="4.5" ry="6" fill="#e6c068" stroke="#3a2a1f" stroke-width="1.5"/><circle cx="10" cy="6" r="4" fill="#e6c068" stroke="#3a2a1f" stroke-width="1.5"/></svg>';
+function yardBlock(t) {
+  const n = yardSpots(), hold = S.yard.s, idle = S.heroes.filter(h => avail(h, t) && !S.gate.some(g => g.members.includes(h.id)));
+  let h = `<div class="card" id="yardCard" style="margin-top:10px"><div class="row"><b class="grow">🎯 Training yard</b><span class="small">${hold.length} of ${n} spots · ${yardBase()} XP/h</span></div>`;
+  h += `<p class="small">Heroes at home train for XP, up to ${fmtCL(YARD_MAX_MS)} a session. Sent heroes always earn more.</p>`;
+  hold.forEach(y => { const x = hero(y.h), d = yardDone(y, t);
+    h += `<div class="list-item" style="flex-wrap:wrap"><span class="chip" style="box-shadow:none"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)}</span><span class="small grow">+${num(y.xp || 0)} XP · ${d ? "<b>Done training</b>" : `<span data-cend="${y.start + YARD_MAX_MS}">${fmtCL(y.start + YARD_MAX_MS - t)}</span> left`}</span>${d ? `<button class="go" data-act="yardGo" data-h="${x.id}">Again</button>` : ""}<button class="alt" data-act="yardOut" data-h="${x.id}">Take out</button></div>`; });
+  if (hold.length < n) { if (!idle.length) h += `<p class="small">Nobody is free to train.</p>`;
+    else h += `<div class="chips">${idle.map(x => `<button class="chip" data-act="yardGo" data-h="${x.id}"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)}</button>`).join("")}</div>`; }
+  return h + `</div>`;
+}
+// ---------- rc6.3.1 (DESIGN 37): recruit board ----------
+// 4 candidates, free refresh every 6 h (keyed, forward-only), 25-gold manual reroll. One Veteran a day at half the lowest rank, 2x price.
+const RB_N = 4, rbKey = t => { const d = new Date(t); return dayKey(t) + "#" + Math.floor(d.getHours() / 6); };
+const rbNum = k => { const m = /^(.+)#(\d)$/.exec(k || ""); return m ? dkNum(m[1]) * 10 + +m[2] : 0; };
+const vetRank = () => S.heroes.length ? Math.max(1, Math.floor(Math.min(...S.heroes.map(h => h.lvl)) / 2)) : 1;
+function rbRoll() {
+  const R = S.rb, r = seedRnd(hash32("rb:" + R.key + ":" + R.n + ":" + S.created)), open = CLS_KEYS.filter(hireOK), dk = R.key.split("#")[0];
+  R.offers = open.length ? [...Array(RB_N)].map(() => ({ cls: open[Math.floor(r() * open.length)], seed: 1 + Math.floor(r() * 2e9), name: NAMES[Math.floor(r() * NAMES.length)] })) : [];
+  if (R.offers.length && !R.vet[dk]) R.offers[Math.floor(r() * R.offers.length)].vet = 1;
+}
+function rbSync(t) {
+  const R = S.rb, k = rbKey(t), n = rbNum(k); if (R.key === k) return rbFix();
+  if (n < Math.max(R.last || 0, rbNum(R.key))) return rbFix(); // clock set back: keep the newest board
+  R.key = k; R.last = n; R.n = 0;
+  const dn = dkNum(k.split("#")[0]); for (const d of Object.keys(R.vet)) if (dkNum(d) < dn - 100) delete R.vet[d];
+  rbRoll(); rbFix();
+}
+function rbFix() { // a class that filled up since the roll is swapped for an open one (same face and name), so the board only offers classes you can hire
+  const open = CLS_KEYS.filter(hireOK); if (!S.rb || !S.rb.offers) return;
+  if (!open.length) { S.rb.offers = []; return; }
+  S.rb.offers.forEach((o, i) => { if (!hireOK(o.cls)) o.cls = open[hash32("rbfix:" + S.rb.key + ":" + S.rb.n + ":" + i + ":" + o.seed) % open.length]; });
+}
+const offerCost = o => recruitCost() * (o.vet ? 2 : 1);
 function v63(s) { // rc6.3 fields, added once; nothing else in the save changes
   const t = Date.now() + (s.offset || 0);
   if (!s.b) return;
@@ -1918,6 +1986,7 @@ function v63(s) { // rc6.3 fields, added once; nothing else in the save changes
   for (const k of ["bakery", "garden"]) if (!s.work[k]) s.work[k] = { p: 0, n: 0 };
   if (!s.bty || typeof s.bty !== "object") s.bty = { day: "", g: [], bonus: 0 };
   if (!s.mer || typeof s.mer !== "object") s.mer = { key: "", item: null, bought: 0, rung: "" };
+  v631(s);
 }
 const vLvl = v => v ? Math.min(10, 1 + Math.floor((v.wk || 0) / DAY_MS)) : 0;
 const vAt = b => (S.vil || []).find(v => v.at === b && S.b[b] > 0) || null;
@@ -1927,7 +1996,7 @@ const prodMs = b => Math.round((PROD[b].base - PROD[b].step * vLvlAt(b)) * MIN /
 const forgeMs = () => Math.round(FORGE_MS * (1 - FORGE_STEP * vLvlAt("smithy")));
 function townSync(t) {
   if (!S.work) v63(S); vilSync();
-  const W = S.work, dt = Math.max(0, t - (W.t || t)); W.t = t;
+  const W = S.work, dt = Math.max(0, t - (W.t || t)); W.t = Math.max(W.t || t, t); // rc6.3.1: forward-only, a clock set back can't earn the same time twice
   if (dt) {
     for (const v of S.vil) if (v.at && S.b[v.at] > 0) v.wk = (v.wk || 0) + dt * (v.best === v.at ? 1.25 : 1); // about a level a day, a little faster at their best job
     for (const b of ["bakery", "garden"]) {
@@ -1939,9 +2008,9 @@ function townSync(t) {
     }
   }
   const F = W.forge; if (F && F.end <= t) { S.bank.weapons.push(F.out); S.bank.from = S.bank.from || []; if (!S.bank.from.includes("Smithy")) S.bank.from.push("Smithy"); W.forge = null; if (LIVE && !document.hidden) toast(`The smithy finished ${art(TIERS[wT(F.out)].name)} ${wName(F.out)}. It's in the bank.`); }
-  btyRoll(t); merSync(t);
+  btyRoll(t); merSync(t); yardSync(t); rbSync(t);
 }
-const townSig = t => [S.b.bakery, S.b.garden, S.b.smithy, (S.vil || []).map(v => v.at + vLvl(v)).join(","), S.work ? S.work.bakery.n + ":" + S.work.garden.n + ":" + (S.work.forge ? 1 : 0) : "", S.bty ? S.bty.day + S.bty.g.map(g => g.c + (g.got ? "g" : "")).join("") + S.bty.bonus : "", merOn(t) ? S.mer.key + S.mer.bought : ""].join("|");
+const townSig = t => [yardSig(t), S.rb ? S.rb.key + S.rb.n + (S.rb.offers || []).length : "", S.b.bakery, S.b.garden, S.b.smithy, (S.vil || []).map(v => v.at + vLvl(v)).join(","), S.work ? S.work.bakery.n + ":" + S.work.garden.n + ":" + (S.work.forge ? 1 : 0) : "", S.bty ? S.bty.day + S.bty.g.map(g => g.c + (g.got ? "g" : "")).join("") + S.bty.bonus : "", merOn(t) ? S.mer.key + S.mer.bought : ""].join("|");
 function workInfo(b) {
   const L = S.b[b], v = vAt(b);
   if (!L) return b === "bakery" ? "Not built yet. A baker here makes Rations." : b === "garden" ? "Not built yet. A gardener here grows Potions." : "Not built yet. A smith here forges 3 weapons into 1 better one.";
@@ -2132,14 +2201,14 @@ function bldTall(b, L, cls) {
 function openSheet(html, kind) { const sh = $("#sheet"); sh.innerHTML = `<div class="box">${html}</div>`; sh.hidden = false; sheetKind = kind || "x"; }
 function closeSheet() { const sh = $("#sheet"); sh.hidden = true; sh.innerHTML = ""; sheetKind = null; send = null; }
 function openRecruit() {
-  const full = S.heroes.length >= SLOTS[S.b.hall - 1], c = recruitCost();
-  const free = S.freeDay !== new Date(now()).toDateString();
-  let h = `<h3>Recruit</h3><p class="small">Heroes ${S.heroes.length} of ${SLOTS[S.b.hall - 1]}. ${full ? "Upgrade the hall for more slots." : `Hiring costs ${num(c)} gold.`}</p>`;
-  (S.offers || []).forEach((o, i) => {
-    h += `<div class="card row"><div class="portrait">${heroSVG(o.cls, o.seed, "starter")}</div><div class="grow"><b>${esc(o.name)}</b><div class="rcls">${CLS[o.cls].name} <span class="small">starting class</span></div><div class="small">${CLS[o.cls].edge}</div>
-      <button class="go" data-act="recruit" data-i="${i}" ${full || S.gold < c ? "disabled" : ""}>Hire · ${IC.gold} ${num(c)}</button></div></div>`;
-  });
-  h += `<div class="btns"><button class="alt" data-act="reroll" ${!free && S.gold < REROLL_PRICE ? "disabled" : ""}>New faces · ${free ? "free today" : IC.gold + " " + REROLL_PRICE}</button><button class="alt" data-act="close">Close</button></div>`;
+  rbFix(); // a class that filled up is swapped even on a frozen board
+  const t = now(), full = S.heroes.length >= SLOTS[S.b.hall - 1], c = recruitCost(), nx = (() => { const d = new Date(t); d.setHours(Math.floor(d.getHours() / 6) * 6 + 6, 0, 0, 0); return d.getTime(); })();
+  let h = `<h3>Recruit board</h3><p class="small">Heroes ${S.heroes.length} of ${SLOTS[S.b.hall - 1]}. ${full ? "Upgrade the hall for more slots." : `Hiring costs ${num(c)} gold.`} New faces in <span data-cend="${nx}">${fmtCL(nx - t)}</span>.</p>`;
+  const offs = S.rb.offers || []; if (!offs.length) h += `<p class="small">Nobody new right now.</p>`;
+  offs.forEach((o, i) => { const ok = hireOK(o.cls), oc = offerCost(o);
+    h += `<div class="card row"><div class="portrait">${heroSVG(o.cls, o.seed, "starter")}</div><div class="grow"><b>${esc(o.name)}</b>${o.vet ? ` <span class="pill st-gate">Veteran · rank ${vetRank()}</span>` : ""}<div class="rcls">${CLS[o.cls].name}</div><div class="small">${ok ? CLS[o.cls].edge : `You have ${CLS_CAP} ${CLS_PL[o.cls]}.`}</div>
+      <button class="go" data-act="recruit" data-i="${i}" ${full || !ok || S.gold < oc ? "disabled" : ""}>Hire · ${IC.gold} ${num(oc)}</button></div></div>`; });
+  h += `<div class="btns"><button class="alt" data-act="reroll" ${S.gold < REROLL_PRICE ? "disabled" : ""}>New faces · ${IC.gold} ${REROLL_PRICE}</button><button class="alt" data-act="close">Close</button></div>`;
   openSheet(h, "recruit");
 }
 function healBtns(x, t) {
@@ -2242,7 +2311,7 @@ function openBld(b, focus) {
   if (WORK[b] || b === "infirmary") h += vilBlock(b, t);
   if (b === "smithy" && L) h += forgeBlock(t);
   h += `<div style="margin-top:10px">${upgBlock(b, t)}</div>`;
-  if (b === "hall") h += btyCard(t, true);
+  if (b === "hall") h += yardBlock(t) + btyCard(t, true);
   if (b === "hall") h += `<div class="btns">${recBtn()}<button class="alt" data-act="copyCode">Copy save code</button><button class="alt" data-act="pasteCode">Paste save code</button><button class="alt" data-act="tipsReset">Show tips again</button></div><div class="small" id="lastBackup" style="margin-top:6px">Last backup: ${backupAgo(t)}</div>`;
   if (b === "shop") h += `<div class="btns"><button class="go" data-act="tab" data-tab="stores">${NAV.stores.replace("<svg", '<svg width="20" height="20"')} Buy and sell</button></div>`;
   h += `<div class="btns"><button class="alt" data-act="close">Close</button></div>`;
@@ -2256,6 +2325,7 @@ function openSend() {
   let h = `<div class="pophead"><span class="tic">${tg.ic}</span><div class="grow"><h3>${esc(tg.name)}</h3><div class="small">Need <b id="sendNeed">${fistN(tg.need)}</b> · ${IC.gold} ~<span id="sendGold">${num(baseGold(tg, mem.length ? payScale(mem, tg, t) : 1) * goldB())}</span> · ${IC.xp} <span id="sendXP">${tg.xp}</span> each</div></div></div>
     <div class="chips" style="margin-top:10px">`;
   if (!free.length) h += `<p>Nobody is free right now.</p>`;
+  S.heroes.filter(x => inYard(x.id)).forEach(x => h += `<button class="chip" disabled><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)} · Training</button>`);
   free.forEach(x => h += `<button class="chip ${send.sel.includes(x.id) ? "on" : ""}" data-act="sendSel" data-h="${x.id}"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${send.sel.includes(x.id) ? IC.check.replace("<svg", '<svg width="16" height="16" style="background:#2fa56a;border-radius:50%"') : ""}${esc(x.name)}${offClass(x) ? `<span class="offdot" title="Off-class">+1</span>` : ""} <span class="fist" data-pw="${power(x)}">${IC.fist}${power(x)}</span></button>`);
   h += `</div>`;
   const pw = partyPow(mem), ratio = pw / tg.need, f = mem.length ? failChance(mem, tg) : 0;
@@ -2314,6 +2384,7 @@ function statusText(h, t) {
   if (p) { const tg = tgOf(p.tid); return `<span class="pill st-out">Out · ${esc(tg ? tg.name : "?")} · <span data-end="${p.end}">${fmt(p.end - t)}</span></span>`; }
   if (isKO(h, t)) return `<span class="pill st-ko">Knocked out · <span data-end="${h.koEnd}">${fmt(h.koEnd - t)}</span></span>`;
   if (S.gate.some(g => g.members.includes(h.id))) return `<span class="pill st-gate">At the gate</span>`;
+  if (inYard(h.id)) return `<span class="pill st-gate">Training</span>`;
   return `<span class="pill st-home">Home</span>`;
 }
 const JOB_IC = { coin: () => IC.gold.replace(/ width="18" height="18"/, ""), hammer: () => IC.hammer, cross: () => IC.cross, pin: () => IC.pin, sword: () => IC.sword.replace(/ width="18" height="18"/, ""), gift: () => IC.gift.replace(/ width="18" height="18"/, ""), broom: () => IC.broom.replace(/ width="18" height="18"/, ""), bounty: () => `<span class="jem">📋</span>`, cart: () => `<span class="jem">🛒</span>` };
@@ -2563,6 +2634,7 @@ function openWbSend() {
   const mem = send.sel.map(hero), free = S.heroes.filter(h => avail(h, t));
   let h = `<div class="pophead"><span class="tic">${tg.ic}</span><div class="grow"><h3>${esc(tg.name)}</h3><div class="small">HP <b>${num(B.hp)}</b> / ${num(B.max)} · damage = power × 10 · never fails</div></div></div><div class="chips" style="margin-top:10px">`;
   if (!free.length) h += `<p>Nobody is free right now.</p>`;
+  S.heroes.filter(x => inYard(x.id)).forEach(x => h += `<button class="chip" disabled><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)} · Training</button>`);
   free.forEach(x => h += `<button class="chip ${send.sel.includes(x.id) ? "on" : ""}" data-act="sendSel" data-h="${x.id}"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${send.sel.includes(x.id) ? IC.check.replace("<svg", '<svg width="16" height="16" style="background:#2fa56a;border-radius:50%"') : ""}${esc(x.name)}</button>`);
   h += `</div>`;
   if (mem.length) { const P = runParts(mem, tg), pw = partyPow(mem);
@@ -3061,16 +3133,16 @@ function mapSync(t) {
   vilMap(t, k);
   labelsIn();
   // heroes at home, in a loose group just inside the gate
-  const lyH = $("#lyH"), home = S.heroes.filter(h => avail(h, t)), keep = new Set();
-  mapSel = mapSel.filter(id => home.some(h => h.id === id));
+  const lyH = $("#lyH"), home = S.heroes.filter(h => avail(h, t) || (inYard(h.id) && !inParty(h.id) && !isKO(h, t))), keep = new Set();
+  mapSel = mapSel.filter(id => home.some(h => h.id === id && !inYard(id)));
   home.forEach((x, i) => {
-    const [hx, hy] = SC.G.V(VIL.home[i % VIL.home.length]), key = `${x.cls}|${x.seed}|${x.weapon}|${i}`; keep.add(String(x.id));
+    const [hx, hy] = SC.G.V(VIL.home[i % VIL.home.length]), yd = inYard(x.id), key = `${x.cls}|${x.seed}|${x.weapon}|${i}|${yd}`; keep.add(String(x.id));
     let o = SC.heroes[x.id];
     if (o && o.key !== key) { o.el.remove(); o = null; }
     if (!o) {
-      const el = document.createElement("button"); el.className = "hf"; el.dataset.act = "mapSel"; el.dataset.h = x.id; el.id = "hf-" + x.id;
+      const el = document.createElement("button"); el.className = "hf" + (yd ? " trn" : ""); if (yd) { el.dataset.act = "bld"; el.dataset.b = "hall"; } else el.dataset.act = "mapSel"; el.dataset.h = x.id; el.id = "hf-" + x.id;
       el.style.cssText = `left:${(hx - FW * 50 / 120).toFixed(1)}px;top:${(hy - FH * 150 / 156).toFixed(1)}px;width:${FW}px;height:${FH}px;z-index:${10 + Math.round(hy / SC.H * 100)}`;
-      el.innerHTML = `<span class="ring"></span>${heroFig(x)}<span class="chk">${IC.check}</span>`;
+      el.innerHTML = `<span class="ring"></span>${heroFig(x)}<span class="chk">${IC.check}</span>${yd ? `<span class="dummy" aria-label="Training">${DUMMY}</span>` : ""}`;
       lyH.appendChild(el); o = SC.heroes[x.id] = { el, key };
     }
     const eq = !!equipNeed(x), hasEq = !!o.el.querySelector(".eqb");
@@ -3270,7 +3342,7 @@ bootCheck();
 if ("serviceWorker" in navigator && window.isSecureContext && !(TEST && QS.has("nosw"))) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => { }); });
 }
-window.TOWN = TEST ? { v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
+window.TOWN = TEST ? { v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
 </script>
 </body>
 </html>
