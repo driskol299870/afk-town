@@ -440,7 +440,7 @@ html.clear #toast{bottom:176px}
 "use strict";
 const KEY = "afktown.save", MIN = 60e3, HR = 3600e3, SEC = 1e3;
 const TEST = /[?&]test(=|&|$)/.test(location.search);
-const BUILD = "rc6.2"; // the build tag on the Town screen; bump it each build
+const BUILD = "rc6.2.1"; // the build tag on the Town screen; bump it each build
 // ---------- sound and music (DESIGN 20, rc5.6): everything is made here in code with Web Audio. No files, no samples. ----------
 // rc5.8.2 (mark 69): music is on by default and fades in as the town shows; if the browser blocks audio it starts on the
 // first gesture of any kind (no prompt). Mute wins and lives in localStorage on this phone only (never in the save or the save code).
@@ -720,9 +720,9 @@ const CLS_KEYS = Object.keys(CLS);
 const NAMES = ["Pip", "Brom", "Lyra", "Tamsin", "Oswin", "Mira", "Rook", "Fenn", "Juno", "Bram", "Kit", "Nell", "Ash", "Wren", "Dax", "Ivy", "Thorne", "Bea", "Cass", "Odo", "Rue", "Hal", "Sable", "Moss", "Tilly", "Gus"];
 // section 3: walk out / job / walk home
 const JOB = [1, .65, .5, .42, .38, .35], MAXP = 6;
-const REC_H = [4, 3.5, 3, 2.5, 2], BEDS = [1, 2, 3, 4, 6], SLOTS = [2, 3, 4, 5, 6];
+const REC_H = [4, 3.5, 3, 2.5, 2], BEDS = [1, 2, 3, 4, 6], SLOTS = [2, 4, 6, 9, 12], PARTIES = [2, 2, 3, 4, 4], CLS_CAP = 2; // rc6.2.1 (DESIGN 36): 12 heroes, 2 per class; parties out at once by Hall level
 const UPC = [500, 1500, 4000, 10000], UPT = [10 * MIN, HR, 3 * HR, 8 * HR];
-const RECRUIT = [100, 250, 500, 1000];
+const RECRUIT = [100, 250, 500, 1000, 1500, 2500, 4000, 6000, 8000, 10000]; // slots 3-12 (DESIGN 36)
 const BLD = { hall: "Hall", shop: "Shop", bank: "Bank", infirmary: "Infirmary" };
 const POTION_PRICE = 40, RATION_PRICE = 25, REROLL_PRICE = 25;
 
@@ -1322,6 +1322,9 @@ function power(h) { return basePow(h) + (EDGE_PW[h.cls] || 0); }
 const hasCls = (mem, k) => mem.some(h => h.cls === k);
 const offClass = h => !!(h.start && h.cls !== h.start);
 const clsOpen = k => !!CLS[k] && CLS[k].unlock <= S.b.hall;
+const clsN = k => S.heroes.filter(h => h.cls === k).length;
+const hireOK = k => clsOpen(k) && clsN(k) < CLS_CAP; // rc6.2.1 (DESIGN 36/38): a class with 2 (or more, old saves) is closed to new hires
+const partyCap = () => PARTIES[Math.max(0, Math.min(PARTIES.length - 1, S.b.hall - 1))];
 // party power is always the sum of the chips: Warrior +5 and Knight +3 are each hero's own (DESIGN 6, Oct 3 12:24 PM).
 // The party-wide edges (Archer gold, Healer cut, Rogue drops, Necromancer XP) still count once per party.
 function partyPow(mem) { return mem.reduce((s, h) => s + power(h), 0); }
@@ -1349,23 +1352,25 @@ function failChance(mem, tg) {
   return f;
 }
 // section 3: walk = 10% of base x (1 + 0.1 per extra person); job = 80% of base x JOB factor; walk home = walk out.
-// A Ration cuts the job only by 10%. Each part rounds to the second. Then each off-class hero adds 1 min to the job (DESIGN 6).
+// rc6.2.1: a Ration cuts the walks by 25%, a Potion the job by 10% (DESIGN 39). Each part rounds to the second. Then each off-class hero adds 1 min to the job (DESIGN 6).
 // rc5.9 (DESIGN 22): walk x (1 - average Vigor / 100); job x (1 - 0.03 x average Skill), before the Ration and the off-class minute.
 // Fast travel (DESIGN 27): trips (walk out, job, walk home) take half time until FAST_TRAVEL_END, 12:00 AM PT Nov 9 2026 (end of Nov 8 PT,
 // 30 days after going live). One line to extend or end it. The phone's clock decides. Healing, upgrades, bank cap, goblins: not halved.
 const FAST_TRAVEL_END = Date.UTC(2026, 10, 9, 8, 0, 0);
-const FT_END = (() => { try { const o = localStorage.getItem("afktown.ftEnd"); if (o !== null && o !== "" && isFinite(+o)) return +o; } catch (e) { } return FAST_TRAVEL_END; })(); // test override only
-const fastOn = t => t < FT_END;
-const ftDay = () => new Date(FT_END - 1).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric" });
+const fastOn = () => false; // rc6.2.1: the fast-travel event is removed (Kurtis, Oct 16): trips run at normal time and pay in full; parties already out keep the pay they were sent with
 function runParts(mem, tg, t) {
-  const f = fastOn(t === undefined ? now() : t) ? .5 : 1; // halved after everything (off-class minute too), walks capped at 5 min, the job at 1 h, then each part rounded (DESIGN 27)
+  const f = fastOn(t === undefined ? now() : t) ? .5 : 1; // halved after everything (off-class minute too), walks capped at 5 min, the job at 1 h (DESIGN 27)
   const n = Math.max(1, Math.min(MAXP, mem.length)), base = tg.base / SEC;
   let w = .1 * base * (1 + .1 * (n - 1)) * (1 - avgOf(mem, vigOf) / 100), j = .8 * base * JOB[n - 1] * (1 - .03 * avgOf(mem, skillOf));
-  if (mem.some(h => carries(h, "ration")) && !tg.fixJob) j *= .9;
-  const offN = tg.fixJob ? 0 : mem.filter(offClass).length; if (tg.fixJob) j = tg.fixJob / SEC; // rc6.2 world boss (33)
-  if (f === 1) { w = Math.round(w) * SEC; j = Math.round(j) * SEC + offN * MIN; return { w, j, total: w + j + w }; }
-  w = Math.round(Math.min(w * f, 300)) * SEC; j = tg.fixJob ? tg.fixJob : Math.round(Math.min((j + offN * 60) * f, 3600)) * SEC; // job cap 1 h (mark 75); the boss job stays 1 h
-  return { w, j, total: w + j + w, fast: true };
+  const offN = tg.fixJob ? 0 : mem.filter(offClass).length;
+  j = tg.fixJob ? tg.fixJob / SEC : j + offN * 60;
+  if (f !== 1) { w = Math.min(w * f, 300); if (!tg.fixJob) j = Math.min(j * f, 3600); } // job cap 1 h (mark 75); the boss job stays 1 h
+  // rc6.2.1 (DESIGN 39): a Ration cuts both walks by 25%, a Potion cuts the job by 10%, each last (after fast travel and the caps); the boss uses no items
+  const rat = !tg.boss && !tg.fixJob && mem.some(h => carries(h, "ration")), pot = !tg.boss && !tg.fixJob && mem.some(h => carries(h, "potion"));
+  const w0 = Math.round(w) * SEC, j0 = Math.round(j) * SEC;
+  if (rat) w *= .75; if (pot) j *= .9;
+  w = Math.round(w) * SEC; j = Math.round(j) * SEC;
+  const o = { w, j, total: w + j + w, w0, j0, rat, pot }; if (f !== 1) o.fast = true; return o;
 }
 // pay while fast travel is on (DESIGN 27): gold and the weapon/Potion drop chances x fast time / normal time for this exact party; XP stays full
 const payScale = (mem, tg, t) => { const P = runParts(mem, tg, t); return P.fast ? P.total / runParts(mem, tg, Infinity).total : 1; };
@@ -1466,8 +1471,7 @@ const bankFull = t => t >= S.lastCollect + capMs();
 const gateLoot = () => S.gate.filter(g => g.loot);
 const lootSum = () => { const o = { gold: S.bank.gold, potions: S.bank.potions, rations: S.bank.rations || 0, weapons: S.bank.weapons.length }; for (const g of gateLoot()) { o.gold += g.loot.gold; o.potions += g.loot.potions; o.rations += g.loot.rations || 0; o.weapons += g.loot.weapons.length; } return o; };
 const bankHas = () => S.bank.gold > 0 || S.bank.potions > 0 || (S.bank.rations || 0) > 0 || S.bank.weapons.length > 0 || gateLoot().length > 0;
-const healCost = (h, t) => 50 * Math.ceil((h.koEnd - t) / HR);
-const canHeal = (h, t) => isKO(h, t) && inBed(h, t) && (S.potions > 0 || carries(h, "potion") || S.gold >= healCost(h, t));
+const canHeal = (h, t) => isKO(h, t) && inBed(h, t) && (S.potions > 0 || carries(h, "potion"));
 function bestStoreW(k) { return bestOfCls(k); } // only the hero's class (DESIGN 28)
 function equipNeed(h) {
   if (!h || inParty(h.id)) return null;
@@ -1533,7 +1537,7 @@ const BN = {
   // just under the gold bar (and the job strip), on the right
   place() { const c = $("#banners"), tw = $("#topwrap"); if (!c || !tw) return; let top = Math.max(0, Math.round(tw.getBoundingClientRect().bottom)) + 6; c.style.top = top + "px";
     const m = document.getElementById("tg-boss"); if (m && !m.hidden && TAB === "map" && c.offsetHeight) { const a = m.getBoundingClientRect(), b = c.getBoundingClientRect(); if (a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom) { top = Math.round(a.bottom) + 6; c.style.top = top + "px"; } } }, // rc6.2: never over the boss
-  sent(p, tg) { BN.add("sent", tg.ic || "❔", `${whoTxt(p.members.map(id => (hero(id) || {}).name || "?"))} set out for ${tg.name}. Home in ${fmtFull(p.end - p.start)}.`); },
+  sent(p, tg) { BN.add("sent", tg.ic || "❔", `${whoTxt(p.members.map(id => (hero(id) || {}).name || "?"))} set out for ${tg.name}. Home in ${fmtC(p.end - p.start)}.`); },
   arrived(p) { const tg = tgOf(p.tid) || { name: "?", ic: "❔" }; BN.add("arr", tg.ic || "❔", `${whoTxt(p.members.map(id => (hero(id) || {}).name || "?"))} reached ${tg.name}.`); },
   ret(ev) {
     if (ev.failed) {
@@ -1555,6 +1559,7 @@ const BN = {
   }
 };
 addEventListener("scroll", () => BN.place(), { passive: true });
+document.addEventListener("scroll", e => { if (e.target && e.target.id === "vp") BN.place(); }, { passive: true, capture: true }); // rc6.2.1: panning the map moves the boss sign, so the banner follows
 addEventListener("resize", () => BN.place());
 // ---------- first-tap tips (DESIGN 21): saved on this phone next to mute, never in the save code ----------
 const TIP_LINES = {
@@ -1568,9 +1573,7 @@ const TIP_LINES = {
   sendGo: "Sends the party out. They walk, do the job, walk home.",
   collect: "Moves the waiting gold into your stores.",
   upg: "Starts an upgrade. Tap the building when it's done.",
-  healG: "Pays gold to bring a knocked-out hero back now.",
   recruitOpen: "Hires a new hero into a free slot.",
-  classOpen: "Changes this hero's class. Home only.",
   equipW: "Gives this hero the weapon.",
   heroPanel: "Your hero and the bag. Tap gear to equip.",
   buyW: "Buys it with gold from stores.", buyS: "Buys it with gold from stores.",
@@ -1585,7 +1588,6 @@ const TIP_LINES = {
   job: "Jumps to the thing that needs you.",
   recruit: "Hires this hero for the gold shown.",
   reroll: "Shows three new heroes to pick from.",
-  setCls: "Switches this hero to that class.",
   unequipW: "Takes the weapon off and puts it in stores.",
   equipBest: "Gives each hero the best free weapon.",
   supAdd: "Adds one to this hero's pack.",
@@ -1634,7 +1636,7 @@ const TIP = (function () {
 // ---------- actions ----------
 function toast(msg) { const el = $("#toast"); el.textContent = msg; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 2200); }
 function commit() { save(); render(); }
-function reopen() { if (sheetKind && sheetKind.startsWith("bld:")) openBld(sheetKind.slice(4)); else if (sheetKind && sheetKind.startsWith("hero:")) openHero(+sheetKind.slice(5)); else if (sheetKind && sheetKind.startsWith("class:")) openClass(+sheetKind.slice(6)); }
+function reopen() { if (sheetKind && sheetKind.startsWith("bld:")) openBld(sheetKind.slice(4)); else if (sheetKind && sheetKind.startsWith("hero:")) openHero(+sheetKind.slice(5)); }
 const A = {
   // a goblin: one coin worth GOB_COIN x hall level, straight to stores, a "+10" pop and the Loot cue; no banner, XP, gear, Potion or Ration
   gob(d) {
@@ -1693,11 +1695,11 @@ const A = {
     else if (k === "gift" || k === "broom") { if (TAB !== "town") { TAB = "town"; closeSheet(); render(); } else closeSheet(); const el = $(k === "gift" ? "#dailyCard" : "#choreCard"); if (el) { el.scrollIntoView({ block: "center" }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } } // jumps, never does it (19)
     else if (k === "pin") { if (TAB !== "map") { TAB = "map"; closeSheet(); render(); } else closeSheet(); jumpPin(d.p); }
   },
-  recruitOpen() { if (S.b.hall < 2) return; if (!S.offers || S.offers.some(o => !clsOpen(o.cls))) genOffers(); save(); openRecruit(); },
+  recruitOpen() { if (S.b.hall < 2) return; if (!S.offers || S.offers.some(o => !hireOK(o.cls))) genOffers(); save(); openRecruit(); },
   recruit(d) {
     const o = S.offers && S.offers[+d.i]; if (!o) return;
     if (S.heroes.length >= SLOTS[S.b.hall - 1]) return toast("No free slot. Upgrade the hall.");
-    if (!clsOpen(o.cls)) return;
+    if (!hireOK(o.cls)) return toast(`You already have ${CLS_CAP} ${CLS[o.cls].name}s.`);
     const c = recruitCost(); if (S.gold < c) return toast("Not enough gold.");
     S.gold -= c; S.paid++; { const nh = makeHero(S, o.cls, o.seed, o.name); nh.weapon = "starter"; S.heroes.push(nh); } S.offers = null; // recruits arrive at rank 1 with a Starter weapon of their class, like the start pair (DESIGN 28)
     closeSheet(); commit(); toast(o.name + " joined the town!");
@@ -1723,20 +1725,6 @@ const A = {
     S = migrate(s); mapSel = []; closeSheet(); process(now()); resetScene(); commit(); toast("Save loaded.");
   },
   heroOpen(d) { openPanel(+d.h); },
-  classOpen(d) { const x = hero(+d.h); if (!x || inParty(x.id)) return; openClass(x.id); },
-  // picking a class always asks first (DESIGN 27); only Switch changes it, Keep goes back to the list
-  setCls(d) {
-    const x = hero(+d.h); if (!x || inParty(x.id) || !clsOpen(d.k) || x.cls === d.k) return;
-    openSheet(`<h3>Switch class</h3><p id="clsQ">Switch ${esc(x.name)} to ${CLS[d.k].name}? ${CLS[d.k].name} rank ${rankOf(x, d.k) || 1}. ${CLS[x.cls].name} rank ${x.lvl} is kept.${x.weapon ? ` ${esc(x.name)}'s ${TIERS[x.weapon].name} ${CLS[x.cls].wname} goes to stores.` : ""}</p><div class="btns"><button class="go" data-act="clsGo" data-h="${x.id}" data-k="${d.k}">Switch</button><button class="alt" data-act="clsKeep" data-h="${x.id}">Keep</button></div>`, "clsask");
-  },
-  clsKeep(d) { openClass(+d.h); },
-  clsGo(d) {
-    const x = hero(+d.h); if (!x || inParty(x.id) || !clsOpen(d.k)) return closeSheet();
-    if (x.weapon) S.weapons.push(wOf(x.weapon, x.cls)); x.weapon = null;
-    setClass(x, d.k);
-    const bw = bestOfCls(x.cls); if (bw) { S.weapons.splice(S.weapons.indexOf(bw), 1); x.weapon = wT(bw); } else x.weapon = "starter"; // DESIGN 28
-    mapSel = mapSel.filter(id => id !== x.id); resetScene(); save(); render(); openClass(x.id); toast(`${x.name} is now ${art(CLS[x.cls].name)} ${CLS[x.cls].name} (rank ${x.lvl}) with ${art(TIERS[x.weapon].name)} ${TIERS[x.weapon].name} ${CLS[x.cls].wname}.`);
-  },
   statV() { }, statS() { }, statG() { },
   tstats() { if (!TEST) return; for (const h of S.heroes) { h.vig = Math.min(VIG_MAX, vigOf(h) + 10); h.grit = Math.min(GRIT_MAX, gritOf(h) + 10); } commit(); toast("Stats +10 for every hero."); },
   trank() { if (!TEST) return; tRanks(S.heroes, 1); commit(); toast("Rank +1 for every hero."); },
@@ -1797,11 +1785,6 @@ const A = {
     if (S.potions > 0) S.potions--; else if (carries(h, "potion")) useSupply(h); else return toast("No potions. Buy some at the shop.");
     h.koEnd = Math.max(t, h.koEnd - HR); save(); render(); reopen(); toast(`${h.name}: 1 hour less to recover.`);
   },
-  healG(d) {
-    const t = now(); process(t); const h = hero(+d.h); if (!h || !isKO(h, t) || !inBed(h, t)) return;
-    const c = healCost(h, t); if (S.gold < c) return toast("Not enough gold.");
-    S.gold -= c; h.koEnd = t; save(); render(); reopen(); toast(`${h.name} is back on their feet.`);
-  },
   mapSel(d) {
     const id = +d.h, t = now(); if (!avail(hero(id), t)) return;
     if (mapSel.includes(id)) mapSel = mapSel.filter(x => x !== id);
@@ -1856,6 +1839,7 @@ function doSend(tid, ids) {
   const tg = tgOf(tid); if (!tg) { toast("That spot is gone."); return false; }
   if (tid === "boss" && !wbLive(t)) { toast("No boss right now."); return false; }
   if (busy(tid)) { toast("A party is already there."); return false; }
+  if (S.parties.length >= partyCap()) { toast(`${partyCap()} parties can be out at once. Upgrade the hall for more.`); return false; } // rc6.2.1 (DESIGN 36)
   if (!ids.length) { toast("Pick at least one hero."); return false; }
   if (ids.length > MAXP) { toast(`A party holds up to ${MAXP}.`); return false; }
   if (ids.some(id => !avail(hero(id), t))) { toast("Someone in that party isn't free."); return false; }
@@ -1864,10 +1848,10 @@ function doSend(tid, ids) {
   S.tip = false; commit(); AUD.cue("send"); { const p = S.parties.find(q => q.tid === tid && q.start === t); if (p) { ARR.delete(p.id); BN.sent(p, tg); } }
   return true;
 }
-function genOffers() { const open = CLS_KEYS.filter(clsOpen); S.offers = [0, 1, 2].map(() => ({ cls: pick(open), seed: rint(), name: pick(NAMES) })); }
+function genOffers() { const open = CLS_KEYS.filter(hireOK); S.offers = open.length ? [0, 1, 2].map(() => ({ cls: pick(open), seed: rint(), name: pick(NAMES) })) : []; }
 // a recruit costs 100 for slot 3, 250 for slot 4, 500 for slot 5 and 1,000 for slot 6
 const art = w => /^[aeiou]/i.test(w) ? "an" : "a";
-const recruitCost = () => RECRUIT[Math.max(0, Math.min(3, S.heroes.length - 2))];
+const recruitCost = () => RECRUIT[Math.max(0, Math.min(RECRUIT.length - 1, S.heroes.length - 2))];
 const recBtn = () => S.b.hall < 2 ? `<button class="go" data-act="recruitOpen" id="recBtn" disabled>${IC.lock} Hall 2</button>` : `<button class="go" data-act="recruitOpen" id="recBtn">Recruit</button>`;
 function encodeSave() { return "AFKTOWN1." + btoa(unescape(encodeURIComponent(JSON.stringify(S)))); }
 function decodeSave(code) {
@@ -1899,8 +1883,7 @@ function openRecruit() {
 function healBtns(x, t) {
   if (!isKO(x, t)) return "";
   if (!inBed(x, t)) return `<p class="small">${IC.bed} Waiting in the hall for a bed (${BEDS[S.b.infirmary - 1]} in the infirmary). Recovery still counts down.</p>`;
-  const c = healCost(x, t);
-  return `<div class="btns"><button class="go" data-act="healP" data-h="${x.id}" ${S.potions > 0 || carries(x, "potion") ? "" : "disabled"}>${IC.cross.replace("<svg", '<svg width="18" height="18"')} ${IC.potion} 1 · −1 h</button><button data-act="healG" data-h="${x.id}" ${S.gold >= c ? "" : "disabled"}>Heal now · ${IC.gold} ${num(c)}</button></div>`;
+  return `<div class="btns"><button class="go" data-act="healP" data-h="${x.id}" ${S.potions > 0 || carries(x, "potion") ? "" : "disabled"}>${IC.cross.replace("<svg", '<svg width="18" height="18"')} ${IC.potion} 1 · −1 h</button></div>`;
 }
 function eqBtn(x) {
   const q = equipNeed(x); if (!q) return "";
@@ -1943,20 +1926,7 @@ function doPrestige(id) {
   x.pr = (x.pr || 0) + 1; S.prest = (+S.prest || 0) + 1;
   return true;
 }
-// change class only while home (town, gate or infirmary); greyed out on a trip
-const clsBtn = x => `<button class="alt clsbtn" data-act="classOpen" data-h="${x.id}" ${inParty(x.id) ? "disabled" : ""}><span class="mini">${heroSVG(x.cls, x.seed)}</span>Class</button>`;
-function openClass(id) {
-  const x = hero(id); if (!x) return;
-  const out = inParty(x.id);
-  let h = `<h3>${esc(x.name)}'s class</h3><p class="small">Free and instant while home. Ranks are kept for good. ${CLS[x.start].name} is the starting class: full XP. Any other class gets 25% less XP and adds 1 min to the job.</p>`;
-  for (const k of CLS_KEYS) {
-    const C = CLS[k], open = clsOpen(k), r = rankOf(x, k), on = k === x.cls;
-    h += `<div class="list-item clsrow${open ? "" : " locked"}" data-cls="${k}"><span class="mini">${heroSVG(k, x.seed, x.weapon)}</span><div class="grow"><b>${C.name}</b>${k === x.start ? ` <span class="pill">★ Start</span>` : ""}<div class="small">${C.edge}</div></div>` +
-      (!open ? `<span class="lockpill">${IC.lock} Hall ${C.unlock}</span>` : on ? `<span class="pill st-home">Rank ${r} · On</span>` : `<button class="go" data-act="setCls" data-h="${x.id}" data-k="${k}" ${out ? "disabled" : ""}>Rank ${r || 1}</button>`) + `</div>`;
-  }
-  h += `<div class="btns"><button class="alt" data-act="close">Close</button></div>`;
-  openSheet(h, "class:" + id);
-}
+// rc6.2.1 (DESIGN 38): a hero keeps the class they were hired as; class changing is removed
 function openHero(id) {
   const x = hero(id), t = now(); if (!x) return;
   const out = inParty(x.id), next = XP_TO_NEXT(x.lvl);
@@ -1966,7 +1936,6 @@ function openHero(id) {
     <div class="small">${IC.sword} ${x.weapon ? `${TIERS[x.weapon].name} +${TIERS[x.weapon].bonus}` : "No weapon"} · ${x.supply ? `${x.supply.k === "potion" ? IC.potion : IC.ration} ${x.supply.n}` : "No supplies"}</div>
     <div style="margin-top:4px">${statusText(x, t)}</div></div></div>`;
   h += healBtns(x, t);
-  h += `<div class="btns">${clsBtn(x)}</div>`;
   h += `<div class="btns"><button class="alt" data-act="close">Close</button></div>`;
   openSheet(h, "hero:" + id);
 }
@@ -2025,13 +1994,13 @@ function openSend() {
   const pw = partyPow(mem), ratio = pw / tg.need, f = mem.length ? failChance(mem, tg) : 0;
   if (mem.length) {
     const P = runParts(mem, tg);
-    h += `<div class="card" style="margin-top:12px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="sendTime">${fmtFull(P.total)}</div>${P.fast ? `<span class="fttag" id="ftTag">½ time until ${ftDay()}</span>` : ""}</div><div class="grow">Power <div><span class="pwbig ${pwCls(ratio)}" id="sendPow">${IC.fist}${pw}</span> <span class="need">/ ${tg.need}</span></div></div></div>
-      <div class="split"><div>${IC.boot}<span id="sendOut">${fmtFull(P.w)}</span></div><div>${IC.swords}<span id="sendJob">${fmtFull(P.j)}</span></div><div>${IC.boot.replace('class="ic"', 'class="ic flip"')}<span id="sendHome">${fmtFull(P.w)}</span></div></div>
+    h += `<div class="card" style="margin-top:12px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="sendTime" style="white-space:nowrap">${fmtC(P.total)}</div></div><div class="grow">Power <div><span class="pwbig ${pwCls(ratio)}" id="sendPow">${IC.fist}${pw}</span> <span class="need">/ ${tg.need}</span></div></div></div>
+      <div class="split"><div>${IC.boot}<span id="sendOut">${fmtC(P.w)}</span>${P.rat ? ` ${IC.ration}<s class="small">${fmtC(P.w0)}</s>` : ""}</div><div>${IC.swords}<span id="sendJob">${fmtC(P.j)}</span>${P.pot ? ` ${IC.potion}<s class="small">${fmtC(P.j0)}</s>` : ""}</div><div>${IC.boot.replace('class="ic"', 'class="ic flip"')}<span id="sendHome">${fmtC(P.w)}</span>${P.rat ? ` ${IC.ration}<s class="small">${fmtC(P.w0)}</s>` : ""}</div></div>
       ${mem.some(offClass) ? `<div class="small offmin" id="offMin">${IC.swords} +${mem.filter(offClass).length} min job · off-class: ${mem.filter(offClass).map(x => esc(x.name) + " (" + CLS[x.cls].name + ")").join(", ")}</div>` : ""}
       <div class="failp small" id="sendFail">${pct(f)} chance to fail</div>
-      ${P.fast ? (() => { const k = payScale(mem, tg, t), dm = hasCls(mem, "rogue") ? 2 : 1; return `<div class="small" id="ftPay">${IC.gold} ~${num(baseGold(tg, k) * goldB())} for the shorter trip${tg.wpn ? ` · ${pctD(tg.wpn.p * dm * k)} weapon` : ""}${tg.pot ? ` · ${pctD(tg.pot * dm * k)} Potion` : ""}</div>`; })() : ""}
-      ${mem.some(x => carries(x, "potion")) ? `<div class="small">${IC.potion} 1 Potion will be used (halves the chance to fail).</div>` : ""}
-      ${mem.some(x => carries(x, "ration")) ? `<div class="small">${IC.ration} 1 Ration will be used (job 10% faster).</div>` : ""}</div>`;
+      
+      ${mem.some(x => carries(x, "potion")) ? `<div class="small">${IC.potion} 1 Potion will be used (job 10% faster, halves the chance to fail).</div>` : ""}
+      ${mem.some(x => carries(x, "ration")) ? `<div class="small">${IC.ration} 1 Ration will be used (walks 25% faster).</div>` : ""}</div>`;
   }
   if (tg.pin) h += `<p class="small">One-time spot. It's gone once they're home.</p>`;
   // a warning, never a lock (DESIGN 4): Send stays tappable whenever someone is picked
@@ -2329,7 +2298,7 @@ function openWbSend() {
   free.forEach(x => h += `<button class="chip ${send.sel.includes(x.id) ? "on" : ""}" data-act="sendSel" data-h="${x.id}"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${send.sel.includes(x.id) ? IC.check.replace("<svg", '<svg width="16" height="16" style="background:#2fa56a;border-radius:50%"') : ""}${esc(x.name)}</button>`);
   h += `</div>`;
   if (mem.length) { const P = runParts(mem, tg), pw = partyPow(mem);
-    h += `<div class="card" style="margin-top:12px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="sendTime" style="white-space:nowrap">${fmtC(P.total)}</div>${P.fast ? `<span class="fttag">½ walks until ${ftDay()}</span>` : ""}</div><div class="grow">Damage <div class="pwbig pw-g" id="wbDmg">${num(pw * WB_DMG)}</div></div></div>
+    h += `<div class="card" style="margin-top:12px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="sendTime" style="white-space:nowrap">${fmtC(P.total)}</div></div><div class="grow">Damage <div class="pwbig pw-g" id="wbDmg">${num(pw * WB_DMG)}</div></div></div>
       <div class="split"><div>${IC.boot}<span id="sendOut">${fmtC(P.w)}</span></div><div>${IC.swords}<span id="sendJob">${fmtC(P.j)}</span></div><div>${IC.boot.replace('class="ic"', 'class="ic flip"')}<span id="sendHome">${fmtC(P.w)}</span></div></div>
       <div class="small">No knockouts, no trip gold or XP. Potions and Rations stay with the heroes.</div></div>`; }
   h += `<div class="btns"><button class="go big" data-act="sendGo" ${mem.length ? "" : "disabled"}>Send</button><button class="alt" data-act="close">Cancel</button></div>`;
@@ -2405,7 +2374,7 @@ function renderPanel(x, t) {
   const oth = {}; S.weapons.filter(w => wC(w) !== x.cls).forEach(w => oth[w] = (oth[w] || 0) + 1);
   let h = `<div class="hpanel${out ? " out" : ""}" data-panel="${x.id}"><button class="hpx" data-act="panelClose" aria-label="Back to the heroes">×</button>`;
   h += `<div class="hpl"><div class="portrait">${heroSVG(x.cls, x.seed, x.weapon)}</div><h3>${esc(x.name)}${stars(x)}</h3>
-    <div class="small"><b>${CLS[x.cls].name}</b> · Rank ${x.lvl}</div><div class="hppow fist">${IC.fist}<b id="ppow">${power(x)}</b>&nbsp;<span class="small">power</span></div>${statChips(x)}${clsBtn(x)}${prBtn(x)}
+    <div class="small"><b>${CLS[x.cls].name}</b> · Rank ${x.lvl}</div><div class="hppow fist">${IC.fist}<b id="ppow">${power(x)}</b>&nbsp;<span class="small">power</span></div>${statChips(x)}${prBtn(x)}
     <div class="hph">Worn</div>
     <div class="worn" id="wornW">${x.weapon ? `${wpnSVG(x.cls, x.weapon)}<span><b>${TIERS[x.weapon].name}</b> ${W}<br><span class="small">+${cur}</span></span>` : `<span class="small">No ${W.toLowerCase()}</span>`}</div>
     <button class="worn" id="wornS" data-act="wornS" data-h="${x.id}" ${out || !x.supply ? "disabled" : ""}>${x.supply ? `${x.supply.k === "potion" ? IC.potion : IC.ration}<span><b>${x.supply.k === "potion" ? "Potion" : "Ration"}</b> ×${x.supply.n}</span>` : `<span class="small">Empty</span>`}</button>
@@ -2436,7 +2405,7 @@ function renderHeroes(t) {
       <div class="small">${IC.sword} ${x.weapon ? `${TIERS[x.weapon].name} ${CLS[x.cls].wname} +${TIERS[x.weapon].bonus}` : "No weapon"} · ${x.supply ? `${x.supply.k === "potion" ? IC.potion : IC.ration} ${x.supply.n}` : "No supplies"}</div>
       <div style="margin-top:4px">${statusText(x, t)}</div></div></div>`;
     h += healBtns(x, t);
-    h += `<div class="btns">${clsBtn(x)}${prBtn(x)}${out ? "" : `<button class="alt warn" data-act="retire" data-h="${x.id}">Retire</button>`}</div>`;
+    h += `<div class="btns">${prBtn(x)}${out ? "" : `<button class="alt warn" data-act="retire" data-h="${x.id}">Retire</button>`}</div>`;
     h += `</div>`;
   });
   return h;
@@ -2450,8 +2419,8 @@ function renderStores() {
   if (!keys.length) h += `<p class="small">None. Weapons from runs land here after you collect.</p>`;
   keys.forEach(k => { const T = TIERS[wT(k)] || TIERS.rusty; h += `<div class="list-item" data-sw="${k}"><div class="grow"><b>${wName(k)}</b> <span class="small">+${T.bonus} power · ×${counts[k]}</span></div><button class="alt" data-act="sellW" data-w="${k}">${T.sell ? `Sell · ${IC.gold} ${num(T.sell)}` : "Sell · 0"}</button></div>`; });
   h += `</div><div class="card"><div class="row bld">${bldSVG("shop", S.b.shop)}<div class="grow"><h3>Shop <span class="small">Lv ${S.b.shop}</span></h3><div class="small">${S.b.shop >= 4 ? "10% off everything" : "Upgrade the shop for better weapons"}</div></div></div>`;
-  h += `<div class="list-item"><div class="grow">${IC.potion} <b>Potion</b> <span class="small">Halves a run's failure chance, or cuts 1 h off a recovery</span></div><button data-act="buyS" data-k="potion" ${S.gold < shopPrice(POTION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(POTION_PRICE)}</button></div>`;
-  h += `<div class="list-item"><div class="grow">${IC.ration} <b>Ration</b> <span class="small">Cuts the job part of a run by 10%</span></div><button data-act="buyS" data-k="ration" ${S.gold < shopPrice(RATION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(RATION_PRICE)}</button></div>`;
+  h += `<div class="list-item"><div class="grow">${IC.potion} <b>Potion</b> <span class="small">Job 10% shorter and half the failure chance, or 1 h off a recovery</span></div><button data-act="buyS" data-k="potion" ${S.gold < shopPrice(POTION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(POTION_PRICE)}</button></div>`;
+  h += `<div class="list-item"><div class="grow">${IC.ration} <b>Ration</b> <span class="small">Makes both walks of a run 25% shorter</span></div><button data-act="buyS" data-k="ration" ${S.gold < shopPrice(RATION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(RATION_PRICE)}</button></div>`;
   const sc = shopCls();
   h += `<div class="shoptabs" role="tablist">${CLS_KEYS.filter(clsOpen).map(k => `<button class="stab${k === sc ? " on" : ""}" role="tab" aria-selected="${k === sc}" data-act="shopTab" data-c="${k}"><span class="mini">${heroSVG(k, 1)}</span>${CLS[k].name}</button>`).join("")}</div>`;
   TIER_KEYS.filter(k => TIERS[k].price).forEach(k => {
