@@ -481,7 +481,7 @@ html.clear #toast{bottom:176px}
 "use strict";
 const KEY = "afktown.save", MIN = 60e3, HR = 3600e3, SEC = 1e3;
 const TEST = /[?&]test(=|&|$)/.test(location.search);
-const BUILD = "rc6.5.1"; // the build tag on the Town screen; bump it each build
+const BUILD = "rc6.5.2"; // the build tag on the Town screen; bump it each build
 // ---------- sound and music (DESIGN 20, rc5.6): everything is made here in code with Web Audio. No files, no samples. ----------
 // rc5.8.2 (mark 69): music is on by default and fades in as the town shows; if the browser blocks audio it starts on the
 // first gesture of any kind (no prompt). Mute wins and lives in localStorage on this phone only (never in the save or the save code).
@@ -766,7 +766,7 @@ const CLS_KEYS = Object.keys(CLS);
 const NAMES = ["Pip", "Brom", "Lyra", "Tamsin", "Oswin", "Mira", "Rook", "Fenn", "Juno", "Bram", "Kit", "Nell", "Ash", "Wren", "Dax", "Ivy", "Thorne", "Bea", "Cass", "Odo", "Rue", "Hal", "Sable", "Moss", "Tilly", "Gus"];
 // section 3: walk out / job / walk home
 const JOB = [1, .65, .5, .42, .38, .35], MAXP = 6;
-const REC_H = [1, .875, .75, .625, .5], KO_MAX = HR, KO_MIN = 5 * MIN, KNIGHT_CUT = 15 * MIN, BEDS = [1, 2, 3, 4, 6], SLOTS = [2, 4, 6, 9, 12], PARTIES = [2, 2, 3, 4, 4], CLS_CAP = 2; // rc6.2.1 (DESIGN 36): 12 heroes, 2 per class; parties out at once by Hall level
+const REC_H = [1, .875, .75, .625, .5], KO_MAX = HR, KO_MIN = 5 * MIN, KNIGHT_CUT = 15 * MIN, BEDS = [1, 2, 3, 4, 6], SLOTS = [2, 4, 6, 9, 12], CLS_CAP = 2; // rc6.2.1 (DESIGN 36): 12 heroes, 2 per class; rc6.5.2 (Kurtis, Oct 17): no limit on parties out at once, only free heroes and one party per target
 const UPC = [500, 1500, 4000, 10000], UPT = [10 * MIN, HR, 3 * HR, 8 * HR];
 const RECRUIT = [100, 250, 500, 1000, 1500, 2500, 4000, 6000, 8000, 10000]; // slots 3-12 (DESIGN 36)
 const BLD = { hall: "Hall", shop: "Shop", bank: "Bank", infirmary: "Infirmary", bakery: "Bakery", garden: "Herb garden", smithy: "Smithy" };
@@ -1407,7 +1407,6 @@ const offClass = h => !!(h.start && h.cls !== h.start);
 const clsOpen = k => !!CLS[k] && CLS[k].unlock <= S.b.hall;
 const clsN = k => S.heroes.filter(h => h.cls === k).length;
 const hireOK = k => clsOpen(k) && clsN(k) < CLS_CAP; // rc6.2.1 (DESIGN 36/38): a class with 2 (or more, old saves) is closed to new hires
-const partyCap = () => PARTIES[Math.max(0, Math.min(PARTIES.length - 1, S.b.hall - 1))];
 // party power is always the sum of the chips: Warrior +5 and Knight +3 are each hero's own (DESIGN 6, Oct 3 12:24 PM).
 // The party-wide edges (Archer gold, Healer cut, Rogue drops, Necromancer XP) still count once per party.
 function partyPow(mem) { return mem.reduce((s, h) => s + power(h), 0); }
@@ -1999,7 +1998,6 @@ function doSend(tid, ids) {
   const home = ids.filter(id => avail(hero(id), t)), away = snapTg(tg) ? ids.filter(id => !home.includes(id)) : []; // rc6.5.1: away heroes go to a campaign mission (or the world boss) as snapshots
   if (away.some(id => !canSnap(id, t))) { toast("Someone in that party isn't free."); return false; }
   if (tg.camp) { if (!cpOpen(tid)) { toast("That mission isn't open."); return false; } const why = cpRuleWhy(tg, selMem(ids, t)); if (why) { toast(why); return false; } }
-  if (home.length && slotsUsed() >= partyCap()) { toast(`${partyCap()} parties can be out at once. Upgrade the hall for more.`); return false; } // rc6.2.1 (DESIGN 36)
   if (!ids.length) { toast("Pick at least one hero."); return false; }
   if (ids.length > MAXP) { toast(`A party holds up to ${MAXP}.`); return false; }
   if (home.length + away.length !== ids.length || new Set(ids).size !== ids.length) { toast("Someone in that party isn't free."); return false; }
@@ -2400,7 +2398,7 @@ function openSnap(mid) {
 // earns no XP and takes no knockout, and the real hero is untouched. One hero's snapshot is on at most one campaign run at a time,
 // and only while the real trip is still out (an away hero who comes home knocked out still had their snapshot taken at departure).
 // One party per mission (busy), the run's roll is fixed at send (p.roll), a clear pays through cpClear exactly once, and cleared
-// missions are never open. A party made only of snapshots uses no party slot; any home hero in it makes it a normal party.
+// missions are never open. A party made only of snapshots is not a normal trip (no bounty trip); any home hero in it makes it a normal party.
 const snapOf = h => { const o = {}; for (const k of SNAP_KEEP) o[k] = h[k] === undefined ? null : h[k]; return o; };
 const snapLive = o => ({ ...o, rk: {}, supply: null, koEnd: 0, snap: 1 });
 function depOf(id, t) { const p = S.parties.find(q => q.members.includes(id) && q.end > t); return p ? (p.dep || []).find(o => o.id === id) || null : null; }
@@ -2409,7 +2407,7 @@ const canSnap = (id, t) => { const d = depOf(id, t); return !!hero(id) && inPart
 const snapTg = tg => !!(tg && (tg.camp || tg.boss)); // rc6.5.1-b: the world boss takes snapshots too
 const pickOK = (id, tg, t) => avail(hero(id), t) || (snapTg(tg) && canSnap(id, t));
 const selMem = (ids, t) => ids.map(id => { const h = hero(id); if (!h) return null; if (avail(h, t)) return h; const d = depOf(id, t); return d ? snapLive(d) : null; }).filter(Boolean);
-const slotsUsed = () => S.parties.filter(p => p.members.length).length; // a party of only snapshots uses no slot
+const slotsUsed = () => S.parties.filter(p => p.members.length).length; // parties out with real heroes (rc6.5.2: a count only, never a limit)
 const snapNames = p => (p.snaps || []).map(o => o.name);
 const partyNames = p => p.members.map(id => (hero(id) || {}).name || "?").concat(snapNames(p).map(n => "📸 " + n));
 function snapCard(t) {
@@ -2885,7 +2883,7 @@ function openSend() {
   h += snapChips(away, t);
   if (tg.camp) S.heroes.filter(x => !avail(x, t) && !inParty(x.id) && !inYard(x.id)).forEach(x => h += `<button class="chip" disabled><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)} · ${isKO(x, t) ? "Knocked out" : "Busy"}</button>`); // rc6.5.1: the campaign lists everyone; a knocked-out hero at home can't go
   h += `</div>`;
-  if (away.length) h += `<div class="small" id="snapHint" style="margin-top:6px">📸 Away heroes go as snapshots, as they were when their trip started (one snapshot run per trip): they earn no XP and are never knocked out; the real heroes keep going.${mem.length && mem.every(x => x.snap) ? " Only snapshots: no party slot used." : ""}</div>`;
+  if (away.length) h += `<div class="small" id="snapHint" style="margin-top:6px">📸 Away heroes go as snapshots, as they were when their trip started (one snapshot run per trip): they earn no XP and are never knocked out; the real heroes keep going.</div>`;
   const pw = partyPow(mem), ratio = pw / tg.need, f = mem.length ? failChance(mem, tg) : 0;
   if (mem.length) {
     const P = runParts(mem, tg);
@@ -4160,7 +4158,7 @@ bootCheck();
 if ("serviceWorker" in navigator && window.isSecureContext && !(TEST && QS.has("nosw"))) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(() => PUSH.sync()).catch(() => { }); });
 }
-window.TOWN = TEST ? { PUSH, NPA, MAR, v651: { saveHW, partyCap, recovMs, REC_H, KO_MAX, KO_MIN, KNIGHT_CUT, snapTg, openWbSend, tripHTML, openTrips, snapOf, snapLive, depOf, snapBusy, canSnap, pickOK, selMem, slotsUsed, partyNames, v651, doSend, launch, ret, openSend, get send() { return send; }, set send(v) { send = v; } }, v65: { RAR, RAR_KEYS, T2R, R2T, rarOf, ARM_B, armB, MAT, MAT_KEYS, MAT_PRICE, MAT_DROP, PIN_MAT, matRoll, matAdd, matN, RECIPE, recipeOf, canPay, craftMs, craftStart, smithBusy, sellOf, wCr, takeW, forgeOpts, colSync, snapOK, snapMem, snapSend, snapTake, RAID_HALL, RAID_WIN, RAID_WARN, RAID_KEEP, RAID_BASE, RAID_TOP, RAID_DEF, RAID_LOSS, raidSlots, raidNext, raidHome, raidDef, raidPow, raidWinP, raidLoot, raidLossOf, raidWarn, raidDue, raidBld, raidU, openRaid, openSnap, v65, basePow, failChance, partyPow, cpClear },  v64: { wbOpen, cpCan, cpWinnable, cpTarget, CP, CPM, CP_CH, cpOpen, cpNext, cpGold, cpTier, cpRuleWhy, cpCleared }, v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, WATER_TAPS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
+window.TOWN = TEST ? { PUSH, NPA, MAR, v651: { saveHW, recovMs, REC_H, KO_MAX, KO_MIN, KNIGHT_CUT, snapTg, openWbSend, tripHTML, openTrips, snapOf, snapLive, depOf, snapBusy, canSnap, pickOK, selMem, slotsUsed, partyNames, v651, doSend, launch, ret, openSend, get send() { return send; }, set send(v) { send = v; } }, v65: { RAR, RAR_KEYS, T2R, R2T, rarOf, ARM_B, armB, MAT, MAT_KEYS, MAT_PRICE, MAT_DROP, PIN_MAT, matRoll, matAdd, matN, RECIPE, recipeOf, canPay, craftMs, craftStart, smithBusy, sellOf, wCr, takeW, forgeOpts, colSync, snapOK, snapMem, snapSend, snapTake, RAID_HALL, RAID_WIN, RAID_WARN, RAID_KEEP, RAID_BASE, RAID_TOP, RAID_DEF, RAID_LOSS, raidSlots, raidNext, raidHome, raidDef, raidPow, raidWinP, raidLoot, raidLossOf, raidWarn, raidDue, raidBld, raidU, openRaid, openSnap, v65, basePow, failChance, partyPow, cpClear },  v64: { wbOpen, cpCan, cpWinnable, cpTarget, CP, CPM, CP_CH, cpOpen, cpNext, cpGold, cpTier, cpRuleWhy, cpCleared }, v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, WATER_TAPS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
 </script>
 </body>
 </html>
