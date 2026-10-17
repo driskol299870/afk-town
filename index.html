@@ -481,7 +481,7 @@ html.clear #toast{bottom:176px}
 "use strict";
 const KEY = "afktown.save", MIN = 60e3, HR = 3600e3, SEC = 1e3;
 const TEST = /[?&]test(=|&|$)/.test(location.search);
-const BUILD = "rc6.5"; // the build tag on the Town screen; bump it each build
+const BUILD = "rc6.5.1"; // the build tag on the Town screen; bump it each build
 // ---------- sound and music (DESIGN 20, rc5.6): everything is made here in code with Web Audio. No files, no samples. ----------
 // rc5.8.2 (mark 69): music is on by default and fades in as the town shows; if the browser blocks audio it starts on the
 // first gesture of any kind (no prompt). Mute wins and lives in localStorage on this phone only (never in the save or the save code).
@@ -759,14 +759,14 @@ const CLS = {
   archer: { name: "Archer", color: "#3bb273", wname: "Bow", edge: "+10% gold on the run", unlock: 1 },
   healer: { name: "Healer", color: "#fff1cc", wname: "Staff", edge: "Cuts the party's failure chance by a quarter", unlock: 2 },
   rogue: { name: "Rogue", color: "#5a5f7a", wname: "Daggers", edge: "Doubles the party's weapon and Potion drop chances", unlock: 3 },
-  knight: { name: "Knight", color: "#5b8def", wname: "Sword and Shield", edge: "+3 power. Takes the knockout if the party fails, and recovers 1 h faster", unlock: 4 },
+  knight: { name: "Knight", color: "#5b8def", wname: "Sword and Shield", edge: "+3 power. Takes the knockout if the party fails, and recovers 15 min faster", unlock: 4 },
   necro: { name: "Necromancer", color: "#4b3470", wname: "Skull Staff", edge: "+10% XP for the party. A failed run still brings back full XP", unlock: 5 },
 };
 const CLS_KEYS = Object.keys(CLS);
 const NAMES = ["Pip", "Brom", "Lyra", "Tamsin", "Oswin", "Mira", "Rook", "Fenn", "Juno", "Bram", "Kit", "Nell", "Ash", "Wren", "Dax", "Ivy", "Thorne", "Bea", "Cass", "Odo", "Rue", "Hal", "Sable", "Moss", "Tilly", "Gus"];
 // section 3: walk out / job / walk home
 const JOB = [1, .65, .5, .42, .38, .35], MAXP = 6;
-const REC_H = [4, 3.5, 3, 2.5, 2], BEDS = [1, 2, 3, 4, 6], SLOTS = [2, 4, 6, 9, 12], PARTIES = [2, 2, 3, 4, 4], CLS_CAP = 2; // rc6.2.1 (DESIGN 36): 12 heroes, 2 per class; parties out at once by Hall level
+const REC_H = [1, .875, .75, .625, .5], KO_MAX = HR, KO_MIN = 5 * MIN, KNIGHT_CUT = 15 * MIN, BEDS = [1, 2, 3, 4, 6], SLOTS = [2, 4, 6, 9, 12], PARTIES = [2, 2, 3, 4, 4], CLS_CAP = 2; // rc6.2.1 (DESIGN 36): 12 heroes, 2 per class; parties out at once by Hall level
 const UPC = [500, 1500, 4000, 10000], UPT = [10 * MIN, HR, 3 * HR, 8 * HR];
 const RECRUIT = [100, 250, 500, 1000, 1500, 2500, 4000, 6000, 8000, 10000]; // slots 3-12 (DESIGN 36)
 const BLD = { hall: "Hall", shop: "Shop", bank: "Bank", infirmary: "Infirmary", bakery: "Bakery", garden: "Herb garden", smithy: "Smithy" };
@@ -1386,7 +1386,7 @@ const inYard = id => !!(S.yard && S.yard.s.some(y => y.h === id));
 const avail = (h, t) => h && !inParty(h.id) && !isKO(h, t) && !inYard(h.id) && !onEv(h.id); // rc6.3.2: a hero at a town event is busy too; rc6.3.1: a hero in the training yard can't be sent until taken out
 const busy = tid => S.parties.some(p => p.tid === tid) || !!(S.ghost && S.ghost.tid === tid); // rc6.5: a snapshot party holds its mission too
 const capMs = () => (24 + S.b.hall - 1) * HR + PR_CAP * prN();
-const recovMs = () => Math.round(REC_H[S.b.infirmary - 1] * HR * (1 - .03 * vLvlAt("infirmary"))); // rc6.3 (34): a healer villager cuts 3% per villager level
+const recovMs = () => Math.max(KO_MIN, Math.round(REC_H[S.b.infirmary - 1] * HR * (1 - .03 * vLvlAt("infirmary")))); // rc6.3 (34): a healer villager cuts 3% per villager level; rc6.5.1-b (Kurtis, Oct 17): at most 1 h (Infirmary L1), never under 5 min
 const carries = (h, k) => h.supply && h.supply.k === k && h.supply.n > 0;
 // rc6.4.2: several buildings can upgrade at once (one upgrade per building). S.ups = [{ b, start, end }]: each has its own fixed
 // end (forward-only, never shortened by gold) and its own push. Older saves' single S.up becomes a one-item list (upNorm).
@@ -1468,14 +1468,13 @@ const pct = f => pctN(f) + "%";
 const pwCls = r => r < 1 ? "pw-r" : r < 2 ? "pw-y" : "pw-g";
 const fistN = n => `<span class="fist">${IC.fist}${n}</span>`;
 function useSupply(h) { h.supply.n--; if (h.supply.n <= 0) h.supply = null; }
-function launch(tid, ids, T) {
-  const tg = tgOf(tid), mem = ids.map(hero).filter(Boolean);
+function launch(tid, ids, T, snaps) {
+  const tg = tgOf(tid), real = ids.map(hero).filter(Boolean), sn = (snaps || []).filter(Boolean), mem = real.concat(sn.map(snapLive)); // rc6.5.1: + snapshots of away heroes
   if (!tg || !mem.length) return false; // a full bank never stops a trip (rc5.3): the loot waits at the gate
   const fail = tg.boss ? 0 : failChance(mem, tg), P = runParts(mem, tg, T), pay = 1; // rc6.2.2: full pay always
   if (!tg.boss) { const rc = mem.find(h => carries(h, "ration")); if (rc) useSupply(rc);
   const pc = mem.find(h => carries(h, "potion")); if (pc) useSupply(pc); } // the boss uses no items
-  S.parties.push({ id: S.nextId++, tid, members: mem.map(h => h.id), start: T, outEnd: T + P.w, jobEnd: T + P.w + P.j, end: T + P.total, fail, ...(pay < 1 ? { pay } : {}), ...(tg.boss ? { wk: S.boss.wk, dmg: partyPow(mem) * WB_DMG } : {}) }); // a trip keeps the time and pay it was sent with
-  snapTake(S.parties[S.parties.length - 1], mem); // rc6.5: the last party sent, as they left
+  S.parties.push({ id: S.nextId++, tid, members: real.map(h => h.id), dep: real.map(snapOf), ...(sn.length ? { snaps: sn.map(o => { const c = { ...o }; delete c.used; return c; }) } : {}), ...(tg.camp ? { roll: Math.random() } : {}), start: T, outEnd: T + P.w, jobEnd: T + P.w + P.j, end: T + P.total, fail, ...(pay < 1 ? { pay } : {}), ...(tg.boss ? { wk: S.boss.wk, dmg: partyPow(mem) * WB_DMG } : {}) }); // a trip keeps the time and pay it was sent with
   return true;
 }
 function addXP(h, x) {
@@ -1489,38 +1488,39 @@ function addXP(h, x) {
 // a run ends when the party walks back in through the gate
 function ret(p) {
   if (p.tid === "boss") return wbRet(p);
-  const T = p.end, tg = tgOf(p.tid) || { name: "?", ic: "❔", gold: 0, xp: 0, wpn: null, pot: 0, pin: true }, mem = p.members.map(hero).filter(Boolean);
+  const T = p.end, tg = tgOf(p.tid) || { name: "?", ic: "❔", gold: 0, xp: 0, wpn: null, pot: 0, pin: true }, mem = p.members.map(hero).filter(Boolean), sn = (p.snaps || []).map(snapLive), all = mem.concat(sn); // rc6.5.1: snapshots count for the party, never for XP or knockouts
   S.parties.splice(S.parties.indexOf(p), 1);
   const bty0 = btySnap(); // rc6.4.2: what this trip moved on the bounty board, for its report
-  let failed = Math.random() < p.fail;
+  let failed = p.roll != null ? !(p.roll >= p.fail) : Math.random() < p.fail; // rc6.5.1: a campaign run's roll was fixed when it was sent
   if (S.failNext) { failed = true; S.failNext = false; }
   const full = T > S.lastCollect + capMs();
-  const ev = { k: "ret", tid: p.tid, name: tg.name, ic: tg.ic, T, names: mem.map(h => h.name), ids: mem.map(h => h.id), failed, full, gold: 0, xp: 0, wpn: null, pot: 0, rat: 0, lv: [], ko: null, koId: null };
+  const ev = { k: "ret", tid: p.tid, name: tg.name, ic: tg.ic, T, names: mem.map(h => h.name), ids: mem.map(h => h.id), failed, full, gold: 0, xp: 0, wpn: null, pot: 0, rat: 0, lv: [], ko: null, koId: null, ...(sn.length ? (mem.length ? { snaps: sn.map(o => o.name) } : { snap: 1, names: sn.map(o => o.name), xps: [] }) : {}) };
+  const so = !mem.length && sn.length > 0; // rc6.5.1: a run of only snapshots pays like the rc6.5 snapshot party: the first-clear reward and nothing else
   // past the bank cap the loot stays with the party at the gate ("Bank full"); nothing is lost (DESIGN 5, rc5.2)
   const to = full ? { gold: 0, potions: 0, rations: 0, weapons: [] } : S.bank;
-  if (!full) { S.bank.from = S.bank.from || []; if (!S.bank.from.includes(tg.name)) S.bank.from.push(tg.name); }
-  {
+  if (!full && !(so && failed)) { S.bank.from = S.bank.from || []; if (!S.bank.from.includes(tg.name)) S.bank.from.push(tg.name); }
+  if (!so) {
     // Archer +10% gold, Necromancer +10% XP and full XP on a fail, Rogue doubles weapon and Potion drops (DESIGN 6)
-    const pk = p.pay || 1; let g = Math.round(baseGold(tg, pk) * goldB() * (0.8 + 0.4 * Math.random()) * (hasCls(mem, "archer") ? 1.1 : 1)), x = tg.xp * (hasCls(mem, "necro") ? 1.1 : 1);
-    if (failed) { g = Math.floor(g / 2); if (!hasCls(mem, "necro")) x = x / 2; }
+    const pk = p.pay || 1; let g = Math.round(baseGold(tg, pk) * goldB() * (0.8 + 0.4 * Math.random()) * (hasCls(all, "archer") ? 1.1 : 1)), x = tg.xp * (hasCls(all, "necro") ? 1.1 : 1);
+    if (failed) { g = Math.floor(g / 2); if (!hasCls(all, "necro")) x = x / 2; }
     x = Math.round(x); ev.gold = g; ev.xp = x; to.gold += g; ev.xps = [];
     incAdd(T, failed ? Math.floor(baseGold(tg, pk) / 2) : baseGold(tg, pk)); // H log (35): base trip gold, no roll, no bonuses
     // XP goes to the equipped class only: full in the starting class, 25% less in any other
     for (const h of mem) { const hx = offClass(h) ? Math.round(x * .75) : x; ev.xps.push([h.name, hx, CLS[h.cls].name]); if (addXP(h, hx)) ev.lv.push(`${h.name} reached ${CLS[h.cls].name} rank ${h.lvl}`); }
-    const dm = hasCls(mem, "rogue") ? 2 : 1;
+    const dm = hasCls(all, "rogue") ? 2 : 1;
     if (!failed) {
-      if (tg.wpn && Math.random() < tg.wpn.p * dm * pk) { ev.wpn = wOf(pickMix(tg.wpn.mix), mem[Math.floor(Math.random() * mem.length)].cls); to.weapons.push(ev.wpn); } // kind = a random party member's class (DESIGN 28)
+      if (tg.wpn && Math.random() < tg.wpn.p * dm * pk) { ev.wpn = wOf(pickMix(tg.wpn.mix), all[Math.floor(Math.random() * all.length)].cls); to.weapons.push(ev.wpn); } // kind = a random party member's class (DESIGN 28)
       if (tg.pot && Math.random() < tg.pot * dm * pk) { ev.pot = 1; to.potions++; }
       if (tg.rat && Math.random() < tg.rat) { ev.rat = 1; to.rations = (to.rations || 0) + 1; }
-      const mo = matRoll(tg, mem); if (mo) { matAdd(mo); ev.mat = mo; } // rc6.5: materials go straight to stores (not gold, so not the bank)
+      const mo = matRoll(tg, all); if (mo) { matAdd(mo); ev.mat = mo; } // rc6.5: materials go straight to stores (not gold, so not the bank)
     }
   }
   let rest = mem;
-  // a Knight always takes the knockout, and recovers 1 h faster
+  // a Knight always takes the knockout, and recovers 15 min faster (rc6.5.1-b); any knockout lasts 5 min to 1 h
   if (failed && mem.length) { const kn = mem.filter(h => h.cls === "knight"), v = kn.length ? pick(kn) : pick(mem);
     // Grit (DESIGN 22): the picked hero rolls their Grit as a percent; made it = nobody is knocked out, the run still fails
     if (Math.random() < gritOf(v) / 100) { ev.shook = v.name; ev.shookId = v.id; }
-    else { ev.koMs = recovMs() - (v.cls === "knight" ? HR : 0); v.koEnd = T + ev.koMs; ev.ko = v.name; ev.koId = v.id; rest = mem.filter(h => h !== v); } }
+    else { ev.koMs = Math.min(KO_MAX, Math.max(KO_MIN, recovMs() - (v.cls === "knight" ? KNIGHT_CUT : 0))); v.koEnd = T + ev.koMs; ev.ko = v.name; ev.koId = v.id; rest = mem.filter(h => h !== v); } }
   // every hero on a finished trip gets +1 Vigor; a failed run gives +2 Grit to each of them, knocked out or not
   for (const h of mem) { h.vig = Math.min(VIG_MAX, vigOf(h) + 1); if (failed) h.grit = Math.min(GRIT_MAX, gritOf(h) + 2); }
   const ids = rest.map(h => h.id);
@@ -1529,7 +1529,7 @@ function ret(p) {
   if (!failed && CPM[p.tid]) cpClear(p.tid, T, to, ev);
   if (tg.pin) S.pins = S.pins.filter(x => x.id !== p.tid); // a pin is a one-time target
   // no Repeat: every trip ends with the party waiting at the gate
-  if (ids.length || full) S.gate.push({ tid: p.tid, name: tg.name, ic: tg.ic, members: ids, reason: full ? "Bank full" : failed ? (ev.shook ? "Run failed" : "Knocked out") : "Back home", loot: full ? to : null, T });
+  if (ids.length || (full && !(so && failed))) S.gate.push({ tid: p.tid, name: tg.name, ic: tg.ic, members: ids, reason: full ? "Bank full" : failed ? (ev.shook ? "Run failed" : "Knocked out") : "Back home", loot: full ? to : null, T });
   ev.bty = btyDiff(bty0); ev.tl = tlogAdd(ev); // rc6.4.2: the trip log copies exactly what was credited above
   ev.live = LIVE && !document.hidden; S.events.push(ev); AUD.ret(ev); if (ev.live) BN.ret(ev);
   if (S.events.length > 400) S.events.splice(0, S.events.length - 400);
@@ -1641,8 +1641,8 @@ const BN = {
   // just under the gold bar (and the job strip), on the right
   place() { const c = $("#banners"), tw = $("#topwrap"); if (!c || !tw) return; let top = Math.max(0, Math.round(tw.getBoundingClientRect().bottom)) + 6; c.style.top = top + "px";
     const m = document.getElementById("tg-boss"); if (m && !m.hidden && TAB === "map" && c.offsetHeight) { const a = m.getBoundingClientRect(), b = c.getBoundingClientRect(); if (a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom) { top = Math.round(a.bottom) + 6; c.style.top = top + "px"; } } }, // rc6.2: never over the boss
-  sent(p, tg) { BN.add("sent", tg.ic || "❔", `${whoTxt(p.members.map(id => (hero(id) || {}).name || "?"))} set out for ${tg.name}. Home in ${fmtC(p.end - p.start)}.`); },
-  arrived(p) { const tg = tgOf(p.tid) || { name: "?", ic: "❔" }; BN.add("arr", tg.ic || "❔", `${whoTxt(p.members.map(id => (hero(id) || {}).name || "?"))} reached ${tg.name}.`); },
+  sent(p, tg) { BN.add("sent", tg.ic || "❔", `${whoTxt(partyNames(p))} set out for ${tg.name}. Home in ${fmtC(p.end - p.start)}.`); },
+  arrived(p) { const tg = tgOf(p.tid) || { name: "?", ic: "❔" }; BN.add("arr", tg.ic || "❔", `${whoTxt(partyNames(p))} reached ${tg.name}.`); },
   ret(ev) {
     if (ev.failed) {
       if (ev.ko) BN.add("ko", IC.cross, `${ev.ko} was knocked out at ${ev.name}. ${fmtFull(ev.koMs)} in the infirmary.`);
@@ -1651,7 +1651,7 @@ const BN = {
       return;
     }
     const drops = [ev.pot ? "Potion" : "", ev.rat ? "Ration" : "", ev.wpn ? wTxt(ev.wpn) : "", ev.mat ? matWords(ev.mat) : ""].filter(Boolean);
-    let t = ev.snap ? `Snapshot party cleared ${ev.name}! +${num(ev.gold)} gold.` : `${whoTxt(ev.names)} ${ev.names.length === 1 ? "is" : "are"} home from ${ev.name}. Success: ${num(ev.gold)} gold, ${ev.xp} XP.`;
+    let t = ev.snap ? `Snapshot party cleared ${ev.name}! +${num(ev.gold)} gold.` : `${whoTxt(ev.names)} ${ev.names.length === 1 ? "is" : "are"} home from ${ev.name}${ev.snaps && ev.snaps.length ? ` (with 📸 ${whoTxt(ev.snaps)})` : ""}. Success: ${num(ev.gold)} gold, ${ev.xp} XP.`;
     if (drops.length) t += ` Found: ${drops.join(", ")}.`;
     if (ev.full) t += " Bank full: the loot waits at the gate.";
     // rc5.8.1: off-class XP and rank-ups are their own short reports, right behind the Returned one
@@ -1698,7 +1698,7 @@ const TIP_LINES = {
   supBack: "Puts the pack back in your stores.",
   retire: "Retires this hero for good. Gear goes to stores.",
   retireGo: "Retires this hero for good. Gear goes to stores.", retireKeep: "Keeps this hero on your roster.",
-  healP: "Uses a Potion: 1 hour less to recover.",
+  healP: "Uses a Potion: up to 1 hour less to recover (a full heal).",
   gateSend: "Sends this party out again to the same place.",
   gateRelease: "Breaks up the party. Heroes stay home on your roster.",
   copyAgain: "Copies the save code again.",
@@ -1910,7 +1910,7 @@ const A = {
   healP(d) {
     const t = now(); process(t); const h = hero(+d.h); if (!h || !isKO(h, t) || !inBed(h, t)) return;
     if (S.potions > 0) S.potions--; else if (carries(h, "potion")) useSupply(h); else return toast("No potions. Buy some at the shop.");
-    h.koEnd = Math.max(t, h.koEnd - HR); save(); render(); reopen(); toast(`${h.name}: 1 hour less to recover.`);
+    h.koEnd = Math.max(t, h.koEnd - HR); save(); render(); reopen(); toast(h.koEnd <= t ? `${h.name} is healed.` : `${h.name}: 1 hour less to recover.`);
   },
   mapSel(d) {
     const id = +d.h, t = now(); if (!avail(hero(id), t)) return;
@@ -1960,7 +1960,7 @@ const A = {
   merBuy() { const t = now(); process(t); if (!merOn(t) || S.mer.bought) return; const it = S.mer.item; if (S.gold < it.price) return toast("Not enough gold.");
     S.gold -= it.price; if (it.k === "w") S.weapons.push(it.w); else S[it.k] += it.n; S.mer.bought = 1; (S.mer.boughtKeys = S.mer.boughtKeys || []).includes(S.mer.key) || S.mer.boughtKeys.push(S.mer.key); btyAdd("buy"); commit(); toast(`Bought ${merName(it)}.`); },
   // rc6.5: materials, crafting, armor, raids, snapshot runs. Gold buys only materials here, never time.
-  buyM(d) { const k = d.k, n = Math.max(1, Math.min(5, Math.floor(+d.n) || 1)); if (!MAT_PRICE[k]) return; const c = n * shopPrice(MAT_PRICE[k]); if (S.gold < c) return toast("Not enough gold."); S.gold -= c; matAdd({ [k]: n }); btyAdd("buy"); commit(); toast(`Bought ${n} ${MAT[k].n}.`); },
+  buyM(d) { const k = d.k, n = Math.max(1, Math.min(5, Math.floor(+d.n) || 1)); if (!MAT_PRICE[k]) return; const c = n * shopPrice(MAT_PRICE[k]); if (S.gold < c) return toast("Not enough gold."); S.gold -= c; matAdd({ [k]: n }); commit(); /* rc6.5.1: materials don't count for the Buy bounty (it paid back more than the iron cost) */ toast(`Bought ${n} ${MAT[k].n}.`); },
   craftK(d) { CRAFTK = d.k === "armor" ? "armor" : "weapon"; reopen(); },
   craftC(d) { if (CLS[d.c]) CRAFTC = d.c; reopen(); },
   craft(d) { const t = now(); process(t); const why = craftStart(d.k, d.r, d.c, t); if (why) return toast(why); commit(); /* crafting is not a forge: no bounty */ reopen(); const C = S.work.craft; toast(`Crafting ${art(RAR[C.r].n)} ${craftOut(C)} (${RAR[C.r].n}). Ready in ${fmtC(C.end - C.start)}.`); },
@@ -1996,14 +1996,18 @@ function doSend(tid, ids) {
   const tg = tgOf(tid); if (!tg) { toast("That spot is gone."); return false; }
   if (tid === "boss" && !wbLive(t)) { toast("No boss right now."); return false; }
   if (busy(tid)) { toast("A party is already there."); return false; }
-  if (tg.camp) { if (!cpOpen(tid)) { toast("That mission isn't open."); return false; } const why = cpRuleWhy(tg, ids.map(hero).filter(Boolean)); if (why) { toast(why); return false; } }
-  if (S.parties.length >= partyCap()) { toast(`${partyCap()} parties can be out at once. Upgrade the hall for more.`); return false; } // rc6.2.1 (DESIGN 36)
+  const home = ids.filter(id => avail(hero(id), t)), away = snapTg(tg) ? ids.filter(id => !home.includes(id)) : []; // rc6.5.1: away heroes go to a campaign mission (or the world boss) as snapshots
+  if (away.some(id => !canSnap(id, t))) { toast("Someone in that party isn't free."); return false; }
+  if (tg.camp) { if (!cpOpen(tid)) { toast("That mission isn't open."); return false; } const why = cpRuleWhy(tg, selMem(ids, t)); if (why) { toast(why); return false; } }
+  if (home.length && slotsUsed() >= partyCap()) { toast(`${partyCap()} parties can be out at once. Upgrade the hall for more.`); return false; } // rc6.2.1 (DESIGN 36)
   if (!ids.length) { toast("Pick at least one hero."); return false; }
   if (ids.length > MAXP) { toast(`A party holds up to ${MAXP}.`); return false; }
-  if (ids.some(id => !avail(hero(id), t))) { toast("Someone in that party isn't free."); return false; }
-  S.gate.forEach(g => g.members = g.members.filter(id => !ids.includes(id))); S.gate = S.gate.filter(g => g.members.length || g.loot);
-  if (!launch(tid, ids, t)) { toast("Couldn't send that party."); return false; }
-  S.tip = false; if (tid !== "boss") btyAdd("trips"); commit(); AUD.cue("send"); { const p = S.parties.find(q => q.tid === tid && q.start === t); if (p) { ARR.delete(p.id); BN.sent(p, tg); } }
+  if (home.length + away.length !== ids.length || new Set(ids).size !== ids.length) { toast("Someone in that party isn't free."); return false; }
+  S.gate.forEach(g => g.members = g.members.filter(id => !home.includes(id))); S.gate = S.gate.filter(g => g.members.length || g.loot);
+  const deps = away.map(id => depOf(id, t));
+  if (!launch(tid, home, t, deps)) { toast("Couldn't send that party."); return false; }
+  deps.forEach(d => d.used = 1); // rc6.5.1-b: this departure's snapshot is spent
+  S.tip = false; if (tid !== "boss" && home.length) btyAdd("trips"); /* a run of only snapshots isn't a trip for the bounty */ commit(); AUD.cue("send"); { const p = S.parties.find(q => q.tid === tid && q.start === t); if (p) { ARR.delete(p.id); BN.sent(p, tg); } }
   return true;
 }
 // a recruit costs 100 for slot 3, 250 for slot 4, 500 for slot 5 and 1,000 for slot 6
@@ -2103,7 +2107,7 @@ const offerCost = o => recruitCost() * (o.vet ? 2 : 1);
 // No time effects of any kind: it never touches trip times, fast travel or pay. A missed event is gone.
 const TEV_KINDS = [["🛞", "A cart is stuck in the mud"], ["🐺", "Wolves at the sheep pen"], ["🧒", "A child is lost in the meadow"], ["🪣", "The well bucket fell in"], ["🐐", "A goat is on the roof"], ["🍎", "The apple tree needs picking"]];
 const TEV_JOB = 5 * MIN, TEV_HX = 0.5;
-function v64(s) { if (!s.camp || typeof s.camp !== "object") s.camp = { clr: {}, leg: 0, crown: 0 }; if (!s.camp.clr) s.camp.clr = {}; v65(s); }
+function v64(s) { if (!s.camp || typeof s.camp !== "object") s.camp = { clr: {}, leg: 0, crown: 0 }; if (!s.camp.clr) s.camp.clr = {}; v65(s); v651(s); }
 function v632(s) {
   if (!s.tev || typeof s.tev !== "object") s.tev = { key: "", last: 0, kind: 0, done: [], run: null };
   if (!s.col || typeof s.col !== "object") s.col = { w: {}, f: {}, v: {}, h: {}, paid: {} };
@@ -2259,7 +2263,7 @@ function openCamp(ch) {
   CP.filter(m => m.ch === ch).forEach((m, i) => { const done = cpCleared(m.id), op = cpOpen(m.id), out = busy(m.id), P = runParts([], m);
     h += `<div class="cpm${done ? " done" : ""}${op ? " open" : ""}" style="margin-left:${[0, 40, 10, 50, 20][i]}px"><div class="row"><span class="tic">${done ? "🏅" : op ? m.ic : IC.lock}</span><div class="grow"><b>${m.mi}. ${esc(m.name)}</b>${m.cpBoss ? ` <span class="pill st-ko">Boss</span>` : ""}<div class="small">${esc(m.story)}</div>
       ${!done && !cpCan(m) ? `<div class="small rbwarn">${IC.warn.replace('width="22" height="22"', 'width="16" height="16"')} Your heroes can't make this team yet. Recruit to fill the rule.</div>` : ""}<div class="small">${m.rule.txt} · Need <b>${fistN(m.need)}</b> · ${IC.clock} ${fmtCL(P.total)} · first clear ${IC.gold} ${num(cpGold(m, t))}${m.cpBoss ? m.ch < 4 ? ` + ${rarSpan(T2R[cpTier(m)], TIERS[cpTier(m)].name + " weapon")}` : ` + ${rarSpan("legendary", "Legendary")} + crown` : m.mi % 2 ? ` + 2 ${IC.potion}` : ` + 2 ${IC.ration}`}</div></div></div>
-      ${done ? `<div class="small">Cleared · can't be replayed for rewards</div>` : out ? `<div class="small">${S.ghost && S.ghost.tid === m.id ? "📸 The snapshot party is on the way." : "A party is on the way."}</div>` : op ? `<div class="btns"><button class="go" data-act="cpGo" data-m="${m.id}">Send a party</button>${snapOK(t) ? `<button class="alt" data-act="snapOpen" data-m="${m.id}">📸 Snapshot</button>` : ""}</div>` : S.b.hall < m.unlock ? `<div class="small">${IC.lock} Hall ${m.unlock}</div>` : `<div class="small">Clear the mission before first.</div>`}</div>`; });
+      ${done ? `<div class="small">Cleared · can't be replayed for rewards</div>` : out ? `<div class="small">${(S.ghost && S.ghost.tid === m.id) || S.parties.some(q => q.tid === m.id && !q.members.length) ? "📸 The snapshot party is on the way." : "A party is on the way."}</div>` : op ? `<div class="btns"><button class="go" data-act="cpGo" data-m="${m.id}">Send a party</button></div>` : S.b.hall < m.unlock ? `<div class="small">${IC.lock} Hall ${m.unlock}</div>` : `<div class="small">Clear the mission before first.</div>`}</div>`; });
   h += `</div><div class="btns"><button class="alt" data-act="close">Close</button></div>`;
   openSheet(h, "camp:" + ch);
 }
@@ -2390,10 +2394,27 @@ function openSnap(mid) {
   h += `<div class="btns"><button class="go big" data-act="snapGo" data-m="${m.id}" ${why ? "disabled" : ""}>Send snapshot</button><button class="alt" data-act="cpCh" data-c="${m.ch}">Back</button></div>`;
   openSheet(h, "snap:" + m.id);
 }
+// ---------- rc6.5.1 (Kurtis, Oct 17 2026: "let me pick any hero for campaign missions, away ones as snapshots") ----------
+// A campaign mission's Send screen lists every hero. Heroes at home go as usual (busy, XP, can be knocked out). Heroes who are away
+// go as snapshots: their rank, gear and stats as their current trip started (p.dep, kept for every party at launch). A snapshot
+// earns no XP and takes no knockout, and the real hero is untouched. One hero's snapshot is on at most one campaign run at a time,
+// and only while the real trip is still out (an away hero who comes home knocked out still had their snapshot taken at departure).
+// One party per mission (busy), the run's roll is fixed at send (p.roll), a clear pays through cpClear exactly once, and cleared
+// missions are never open. A party made only of snapshots uses no party slot; any home hero in it makes it a normal party.
+const snapOf = h => { const o = {}; for (const k of SNAP_KEEP) o[k] = h[k] === undefined ? null : h[k]; return o; };
+const snapLive = o => ({ ...o, rk: {}, supply: null, koEnd: 0, snap: 1 });
+function depOf(id, t) { const p = S.parties.find(q => q.members.includes(id) && q.end > t); return p ? (p.dep || []).find(o => o.id === id) || null : null; }
+const snapBusy = (id, t) => S.parties.some(p => p.end > t && (p.snaps || []).some(o => o.id === id)) || !!(S.ghost && S.ghost.end > t && S.snap && (S.snap.h || []).some(o => o.id === id));
+const canSnap = (id, t) => { const d = depOf(id, t); return !!hero(id) && inParty(id) && !!d && !d.used && !snapBusy(id, t); }; // rc6.5.1-b: one snapshot run per departure (campaign or boss), used on send, win or lose
+const snapTg = tg => !!(tg && (tg.camp || tg.boss)); // rc6.5.1-b: the world boss takes snapshots too
+const pickOK = (id, tg, t) => avail(hero(id), t) || (snapTg(tg) && canSnap(id, t));
+const selMem = (ids, t) => ids.map(id => { const h = hero(id); if (!h) return null; if (avail(h, t)) return h; const d = depOf(id, t); return d ? snapLive(d) : null; }).filter(Boolean);
+const slotsUsed = () => S.parties.filter(p => p.members.length).length; // a party of only snapshots uses no slot
+const snapNames = p => (p.snaps || []).map(o => o.name);
+const partyNames = p => p.members.map(id => (hero(id) || {}).name || "?").concat(snapNames(p).map(n => "📸 " + n));
 function snapCard(t) {
   if (S.ghost) { const m = CPM[S.ghost.tid]; return `<div class="card snapcard" id="snapCard">📸 <b>Snapshot party</b> on ${esc(m ? m.name : "?")} · back in <b data-cend="${S.ghost.end}">${fmtCL(S.ghost.end - t)}</b></div>`; }
-  if (snapOK(t)) { const mem = snapMem(); return `<div class="card snapcard" id="snapCard">📸 <b>Snapshot ready:</b> ${esc(whoTxt(mem.map(h => h.name)))} · ${IC.fist}${partyPow(mem)}<div class="small">The party you last sent, as they left. While they're away it can run one open mission below (first-clear reward, no XP).</div></div>`; }
-  return `<div class="small snapcard" id="snapCard">📸 Send any party and its snapshot can run one mission here while they're away.</div>`;
+  return `<div class="small snapcard" id="snapCard">📸 Heroes who are away can go too, as snapshots of themselves: pick them on the Send screen. Snapshots earn no XP and are never knocked out.</div>`; // rc6.5.1: the old single-snapshot card is retired
 }
 // 6) Town raids (Hall 2+): 3 a day at set times on the phone's calendar (one each morning, afternoon and evening window), warned 30 min
 //    ahead. Heroes at home (not out, not knocked out) plus the Hall and Smithy fight on their own. A win brings materials; a loss takes
@@ -2450,6 +2471,18 @@ function openRaid() {
   let h = `<button class="sx" data-act="close" aria-label="Close">✕</button><h3>⚔️ Town defense</h3>${raidHTML(t)}<p class="small">Three raids a day: one each morning (9 AM to noon), afternoon (2 to 5 PM) and evening (7 to 10 PM). Keep some heroes home to fight. Each Hall level adds ${RAID_DEF.hall} defense and each Smithy level ${RAID_DEF.smithy}.</p>`;
   const L = (S.raid.log || []).slice().reverse(); h += `<h4>Last raids</h4>` + (L.length ? L.map(x => `<div class="small raidlog">${whenTxt(x.T)} · ${x.n} home · ${IC.fist}${x.def} vs ${x.pow} · ${raidLine(x)}</div>`).join("") : `<p class="small">None yet.</p>`);
   openSheet(h, "raid");
+}
+const saveHW = s => Math.max(0, +((s.work || {}).t) || 0, +s.lastCollect || 0, ...(s.parties || []).map(p => +p.start || 0), ...(s.tlog || []).map(e => +e.T || 0)); // rc6.5.1-c: the latest time this save has seen (forward-only fields only)
+function v651(s) { // rc6.5.1: every party out keeps its members as they left (old parties: as they are now; heroes away never change)
+  for (const p of s.parties || []) { if (!Array.isArray(p.dep)) p.dep = (p.members || []).map(id => (s.heroes || []).find(h => h.id === id)).filter(Boolean).map(snapOf);
+    if (p.snaps && !Array.isArray(p.snaps)) delete p.snaps; }
+  if (s.snap && Array.isArray(s.snap.h) && (s.ghost || s.snap.used)) { const q = (s.parties || []).find(p => p.id === s.snap.pid); // rc6.5.1-b: the rc6.5 snapshot party's members spent this departure
+    if (q) for (const o of q.dep || []) if (s.snap.h.some(x => x && x.id === o.id)) o.used = 1; }
+  if (!s.ghost) s.snap = null; // the old last-sent snapshot is retired; a snapshot party already out (S.ghost) finishes and pays as before
+  // rc6.5.1-c: knockouts last at most 1 h. Once per save (flag ko1), a longer one is cut to 1 h after the save's own forward-only
+  // high-water time (the latest time the town has seen: work clock, last collect, trips, logs), never the device clock, so setting the
+  // clock back can't shorten or skip a knockout. Pasted saves without the flag get the same one-time rule.
+  if (!s.ko1) { const hw = saveHW(s); if (hw > 0) for (const h of s.heroes || []) if (h && +h.koEnd > hw + HR) h.koEnd = hw + HR; s.ko1 = 1; }
 }
 function v65(s) { // rc6.5 fields, added once; nothing else in the save changes (weapon strings are kept: tiers are the rarities)
   const t = Date.now() + (s.offset || 0);
@@ -2833,17 +2866,26 @@ function openBld(b, focus) {
   h += `<div class="btns"><button class="alt" data-act="close">Close</button></div>`;
   openSheet(h, "bld:" + b);
 }
+function snapChips(away, t) { // rc6.5.1: away heroes on a campaign or boss Send screen
+  let h = "";
+  away.forEach(x => { const ok = canSnap(x.id, t), d = depOf(x.id, t), o = d ? snapLive(d) : x, on = send.sel.includes(x.id);
+    h += `<button class="chip snapchip ${on ? "on" : ""}" ${ok ? `data-act="sendSel" data-h="${x.id}"` : "disabled"} title="${ok ? "Away: goes as a snapshot (as they left)" : "Away: this trip's snapshot is already used"}"><span class="mini">${heroSVG(o.cls, o.seed, o.weapon)}</span>${on ? IC.check.replace("<svg", '<svg width="16" height="16" style="background:#2fa56a;border-radius:50%"') : ""}<span class="snapb">📸</span>${esc(x.name)} <span class="fist" data-pw="${power(o)}">${IC.fist}${power(o)}</span>${ok ? "" : ` <span class="small">used</span>`}</button>`; }); // rc6.5.1
+  return h;
+}
 function openSend() {
   if (send && send.tid === "boss") return openWbSend();
   const t = now(), tg = tgOf(send.tid); if (!tg) return closeSheet();
-  send.sel = send.sel.filter(id => avail(hero(id), t));
-  const mem = send.sel.map(hero), free = S.heroes.filter(h => avail(h, t));
+  send.sel = send.sel.filter(id => pickOK(id, tg, t)); // rc6.5.1: a campaign mission also takes away heroes, as snapshots
+  const mem = selMem(send.sel, t), free = S.heroes.filter(h => avail(h, t)), away = tg.camp ? S.heroes.filter(h => !avail(h, t) && inParty(h.id)) : [];
   let h = `<div class="pophead"><span class="tic">${tg.ic}</span><div class="grow"><h3>${esc(tg.name)}</h3><div class="small">Need <b id="sendNeed">${fistN(tg.need)}</b> · ${tg.camp ? `first clear ${IC.gold} ${num(cpGold(tg, t))}` : `${IC.gold} ~<span id="sendGold">${num(baseGold(tg, mem.length ? payScale(mem, tg, t) : 1) * goldB())}</span>`} · ${IC.xp} <span id="sendXP">${tg.xp}</span> each</div></div></div>
     <div class="chips" style="margin-top:10px">`;
-  if (!free.length) h += `<p>Nobody is free right now.</p>`;
+  if (!free.length && !away.length) h += `<p>Nobody is free right now.</p>`;
   S.heroes.filter(x => inYard(x.id)).forEach(x => h += `<button class="chip" disabled><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)} · Training</button>`);
   free.forEach(x => h += `<button class="chip ${send.sel.includes(x.id) ? "on" : ""}" data-act="sendSel" data-h="${x.id}"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${send.sel.includes(x.id) ? IC.check.replace("<svg", '<svg width="16" height="16" style="background:#2fa56a;border-radius:50%"') : ""}${esc(x.name)}${offClass(x) ? `<span class="offdot" title="Off-class">+1</span>` : ""} <span class="fist" data-pw="${power(x)}">${IC.fist}${power(x)}</span></button>`);
+  h += snapChips(away, t);
+  if (tg.camp) S.heroes.filter(x => !avail(x, t) && !inParty(x.id) && !inYard(x.id)).forEach(x => h += `<button class="chip" disabled><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)} · ${isKO(x, t) ? "Knocked out" : "Busy"}</button>`); // rc6.5.1: the campaign lists everyone; a knocked-out hero at home can't go
   h += `</div>`;
+  if (away.length) h += `<div class="small" id="snapHint" style="margin-top:6px">📸 Away heroes go as snapshots, as they were when their trip started (one snapshot run per trip): they earn no XP and are never knocked out; the real heroes keep going.${mem.length && mem.every(x => x.snap) ? " Only snapshots: no party slot used." : ""}</div>`;
   const pw = partyPow(mem), ratio = pw / tg.need, f = mem.length ? failChance(mem, tg) : 0;
   if (mem.length) {
     const P = runParts(mem, tg);
@@ -3144,15 +3186,15 @@ function wbChest(i, T) {
   if (LIVE && !document.hidden) toast(`${WB_LIST[B.ri].name}: ${Math.round(WB_MARKS[i] * 100)}% chest! ${num(g)} gold${w ? " and a " + wTxt(w) : ""} in the bank.`);
 }
 function wbRet(p) {
-  const T = p.end, mem = p.members.map(hero).filter(Boolean), L = WB_LIST[(S.boss || { ri: 0 }).ri];
+  const T = p.end, mem = p.members.map(hero).filter(Boolean), sn = snapNames(p), L = WB_LIST[(S.boss || { ri: 0 }).ri]; // rc6.5.1-b: snapshots add their damage (sent with the party); no Vigor, no gate
   S.parties.splice(S.parties.indexOf(p), 1); const bty0 = btySnap();
   if (!p.hit) { p.hit = 1; wbHit(p, T); }
-  btyAdd("boss");
+  if (mem.length) btyAdd("boss"); // a run of only snapshots isn't a boss trip for the bounty
   for (const h of mem) h.vig = Math.min(VIG_MAX, vigOf(h) + 1); // a finished trip: +1 Vigor; no XP, no gold, never a knockout
   if (mem.length) S.gate.push({ tid: "boss", name: L.name, ic: L.ic, members: mem.map(h => h.id), reason: "Back home", loot: null, T });
   const ev = { live: LIVE && !document.hidden, T, failed: false }; AUD.ret(ev);
-  tlogAdd({ k: "ret", boss: 1, tid: "boss", name: L.name, ic: L.ic, T, names: mem.map(h => h.name), failed: false, gold: 0, xp: 0, pot: 0, rat: 0, wpn: null, lv: [], dmg: p.dmg || 0, bty: btyDiff(bty0) }); // rc6.4.2: chests go to the bank on their own (DESIGN 35)
-  if (ev.live) BN.add("ret", L.ic, `${whoTxt(mem.map(h => h.name))} hit the ${L.name} for ${num(p.dmg || 0)}.`);
+  tlogAdd({ k: "ret", boss: 1, tid: "boss", name: L.name, ic: L.ic, T, names: mem.map(h => h.name), ...(sn.length ? { snaps: sn } : {}), failed: false, gold: 0, xp: 0, pot: 0, rat: 0, wpn: null, lv: [], dmg: p.dmg || 0, bty: btyDiff(bty0) }); // rc6.4.2: chests go to the bank on their own (DESIGN 35)
+  if (ev.live) BN.add("ret", L.ic, `${whoTxt(mem.map(h => h.name).concat(sn.map(n => "📸 " + n)))} hit the ${L.name} for ${num(p.dmg || 0)}.`);
 }
 function wbCard(t) {
   if (!wbOpen() && !S.boss) return `<div class="card wbcard" id="wbCard"><div class="row"><span class="tic">🐲</span><div class="grow"><h3>World boss</h3><div class="small">${IC.lock} Unlocks at Hall 2. A giant foe every week.</div></div></div></div>`;
@@ -3167,13 +3209,16 @@ function wbCard(t) {
 const fmtC = ms => { const s = Math.round(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + "h " : "") + (h || m ? m + "m " : "") + x + "s"; }; // compact, one line at 360 px
 function openWbSend() {
   const t = now(); if (!wbLive(t)) { closeSheet(); toast("No boss right now."); return; }
-  const tg = tgOf("boss"), B = S.boss; send.sel = send.sel.filter(id => avail(hero(id), t));
-  const mem = send.sel.map(hero), free = S.heroes.filter(h => avail(h, t));
+  const tg = tgOf("boss"), B = S.boss; send.sel = send.sel.filter(id => pickOK(id, tg, t)); // rc6.5.1-b: away heroes can hit the boss as snapshots
+  const mem = selMem(send.sel, t), free = S.heroes.filter(h => avail(h, t)), away = S.heroes.filter(h => !avail(h, t) && inParty(h.id));
   let h = `<div class="pophead"><span class="tic">${tg.ic}</span><div class="grow"><h3>${esc(tg.name)}</h3><div class="small">HP <b>${num(B.hp)}</b> / ${num(B.max)} · damage = power × 10 · never fails</div></div></div><div class="chips" style="margin-top:10px">`;
-  if (!free.length) h += `<p>Nobody is free right now.</p>`;
+  if (!free.length && !away.length) h += `<p>Nobody is free right now.</p>`;
   S.heroes.filter(x => inYard(x.id)).forEach(x => h += `<button class="chip" disabled><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)} · Training</button>`);
   free.forEach(x => h += `<button class="chip ${send.sel.includes(x.id) ? "on" : ""}" data-act="sendSel" data-h="${x.id}"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${send.sel.includes(x.id) ? IC.check.replace("<svg", '<svg width="16" height="16" style="background:#2fa56a;border-radius:50%"') : ""}${esc(x.name)}</button>`);
+  h += snapChips(away, t);
+  S.heroes.filter(x => !avail(x, t) && !inParty(x.id) && !inYard(x.id)).forEach(x => h += `<button class="chip" disabled><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)} · ${isKO(x, t) ? "Knocked out" : "Busy"}</button>`);
   h += `</div>`;
+  if (away.length) h += `<div class="small" id="snapHint" style="margin-top:6px">📸 Away heroes hit as snapshots, as they were when their trip started (one snapshot run per trip). Same boss, same chests.</div>`;
   if (mem.length) { const P = runParts(mem, tg), pw = partyPow(mem);
     h += `<div class="card" style="margin-top:12px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="sendTime" style="white-space:nowrap">${fmtC(P.total)}</div>${P.fast ? `<span class="fttag">½ walks</span>` : ""}</div><div class="grow">Damage <div class="pwbig pw-g" id="wbDmg">${num(pw * WB_DMG)}</div></div></div>
       <div class="split"><div>${IC.boot}<span id="sendOut">${fmtC(P.w)}</span></div><div>${IC.swords}<span id="sendJob">${fmtC(P.j)}</span></div><div>${IC.boot.replace('class="ic"', 'class="ic flip"')}<span id="sendHome">${fmtC(P.w)}</span></div></div>
@@ -3200,7 +3245,7 @@ function renderTown(t) {
     h += `<h2>Out now</h2>`;
     S.parties.slice().sort((a, b) => a.end - b.end).forEach(p => {
       const tg = tgOf(p.tid) || { ic: "❔", name: "?" }, pr = Math.min(100, (t - p.start) / (p.end - p.start) * 100), ph = phase(p, t);
-      h += `<div class="card"><div class="row"><div class="grow"><b>${tg.ic} ${esc(tg.name)}</b><div class="small">${p.members.map(id => esc((hero(id) || {}).name || "?")).join(", ")}</div></div><div class="row" style="gap:4px">${ph === "job" ? IC.swords : IC.boot}<b data-end="${p.end}">${fmt(p.end - t)}</b></div></div>
+      h += `<div class="card"><div class="row"><div class="grow"><b>${tg.ic} ${esc(tg.name)}</b><div class="small">${partyNames(p).map(esc).join(", ")}</div></div><div class="row" style="gap:4px">${ph === "job" ? IC.swords : IC.boot}<b data-end="${p.end}">${fmt(p.end - t)}</b></div></div>
         <div class="bar"><i data-pg="${p.start},${p.end}" style="width:${pr}%"></i></div>
         <div class="row"><span class="small grow">${fistN(tg.need)} · ${pct(p.fail)} to fail</span></div></div>`;
     });
@@ -3304,7 +3349,7 @@ function renderStores() {
   { const ac = {}; (S.armor || []).forEach(r => ac[r] = (ac[r] || 0) + 1); const ak = RAR_KEYS.filter(r => ac[r]); h += `<b>Spare armor</b>` + (ak.length ? ak.map(r => `<div class="list-item" data-sa="${r}"><div class="grow"><b>${aHTML(r)}</b> <span class="small">+${ARM_B[r]} power · ×${ac[r]} · any class</span></div></div>`).join("") : `<p class="small">None. The smithy crafts armor.</p>`); }
   h += `<b>Materials</b>${matRow()}<div class="small">From monsters, dungeons and raids. The smithy turns them into gear.</div>`;
   h += `</div><div class="card"><div class="row bld">${bldSVG("shop", S.b.shop)}<div class="grow"><h3>Shop <span class="small">Lv ${S.b.shop}</span></h3><div class="small">${S.b.shop >= 4 ? "10% off everything" : "Upgrade the shop for better weapons"}</div></div></div>`;
-  h += `<div class="list-item"><div class="grow">${IC.potion} <b>Potion</b> <span class="small">Job 10% shorter and half the failure chance, or 1 h off a recovery</span></div><button data-act="buyS" data-k="potion" ${S.gold < shopPrice(POTION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(POTION_PRICE)}</button></div>`;
+  h += `<div class="list-item"><div class="grow">${IC.potion} <b>Potion</b> <span class="small">Job 10% shorter and half the failure chance, or heals a knocked-out hero (1 h off)</span></div><button data-act="buyS" data-k="potion" ${S.gold < shopPrice(POTION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(POTION_PRICE)}</button></div>`;
   h += `<div class="list-item"><div class="grow">${IC.ration} <b>Ration</b> <span class="small">Makes both walks of a run 25% shorter</span></div><button data-act="buyS" data-k="ration" ${S.gold < shopPrice(RATION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(RATION_PRICE)}</button></div>`;
   for (const k of Object.keys(MAT_PRICE)) h += `<div class="list-item" data-buym="${k}"><div class="grow">${MAT[k].ic} <b>${MAT[k].n}</b> <span class="small">A basic smithy material · you have ${matN(k)}</span></div><div class="row" style="gap:4px;flex:none"><button data-act="buyM" data-k="${k}" data-n="1" ${S.gold < shopPrice(MAT_PRICE[k]) ? "disabled" : ""}>${IC.gold} ${shopPrice(MAT_PRICE[k])}</button><button data-act="buyM" data-k="${k}" data-n="5" ${S.gold < 5 * shopPrice(MAT_PRICE[k]) ? "disabled" : ""}>×5 · ${num(5 * shopPrice(MAT_PRICE[k]))}</button></div></div>`;
   const sc = shopCls();
@@ -3723,7 +3768,7 @@ function mapSync(t) {
       const el = document.createElement("div"); el.className = "bub tbub"; el.id = "bub-" + p.tid;
       const a = TGM[p.tid] ? ART[p.tid] : CPM[p.tid] ? ART[CPM[p.tid].via] : PIN_ART;
       el.style.left = X(tg.x) + "px"; el.style.top = (Y(tg.y) - a.ey * k - 2) + "px"; el.style.zIndex = 300;
-      el.innerHTML = mem.map(faceChip).join("") + `<span class="pic"></span><span data-end="${p.end}">${fmt(p.end - t)}</span>`;
+      el.innerHTML = mem.map(faceChip).join("") + ((p.snaps || []).length ? `<span class="snapb" title="Snapshots">📸${p.snaps.length > 1 ? p.snaps.length : ""}</span>` : "") + `<span class="pic"></span><span data-end="${p.end}">${fmt(p.end - t)}</span>`;
       lyU.appendChild(el); b = SC.bub[p.id] = { el, ph: "", cx: X(tg.x) };
     }
     const ph = phase(p, t);
@@ -3809,8 +3854,8 @@ var PUSH = (() => { // var: save() may run before this line during start-up
   const post = (path, d) => fetch(PUSH_URL + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d), keepalive: true })
     .then(r => r.ok ? "ok" : r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429 ? "bad" : "fail", () => "fail");
   const jobs = () => { if (!S) return []; const off = S.offset || 0, t = Date.now(), J = S.parties.filter(p => p.end - off > t + 5e3).map(p => {
-    const tg = tgOf(p.tid), names = p.members.map(hero).filter(Boolean).map(h => h.name);
-    return { id: "p" + p.id, at: Math.round(p.end - off), title: "AFK Town", body: `${whoTxt(names)} ${names.length === 1 ? "is" : "are"} home from ${tg ? tg.name : "their trip"}!` }; });
+    const tg = tgOf(p.tid), names = p.members.map(hero).filter(Boolean).map(h => h.name), sn = snapNames(p);
+    return { id: "p" + p.id, at: Math.round(p.end - off), title: "AFK Town", body: names.length ? `${whoTxt(names)} ${names.length === 1 ? "is" : "are"} home from ${tg ? tg.name : "their trip"}!` : `The snapshot party (${whoTxt(sn)}) is back from ${tg ? tg.name : "the campaign"}!` }; }); // rc6.5.1
     for (const U of (S.ups || []).slice().sort((a, c) => c.end - a.end)) if (BLD[U.b] && U.end - off > t + 5e3) { const n = (S.b[U.b] || 0) + 1; J.unshift({ id: `u${U.b}${n}`, at: Math.round(U.end - off), title: "AFK Town", body: `${BLD[U.b]} is now level ${n}!` }); }
     // rc6.5: the snapshot party, the smithy, and raid warnings (the next two within 12 h)
     if (S.ghost && S.ghost.end - off > t + 5e3) { const m = CPM[S.ghost.tid]; J.push({ id: "g" + Math.round(S.ghost.start), at: Math.round(S.ghost.end - off), title: "AFK Town", body: `The snapshot party is back from ${m ? m.name : "the campaign"}!` }); }
@@ -3892,7 +3937,7 @@ const TLOG_MAX = 20;
 function tlogAdd(e) {
   const L = Array.isArray(S.tlog) ? S.tlog : (S.tlog = []); S.tlseq = (S.tlseq || 0) + 1;
   const x = { id: S.tlseq, T: e.T, tid: e.tid, name: e.name, ic: e.ic, names: (e.names || []).slice(), failed: !!e.failed, full: !!e.full, gold: e.gold || 0, xp: e.xp || 0, xps: (e.xps || []).map(q => q.slice()), lv: (e.lv || []).slice(), pot: e.pot || 0, rat: e.rat || 0, wpn: e.wpn || null };
-  if (e.snap) x.snap = 1; if (e.mat) x.mat = { ...e.mat }; // rc6.5
+  if (e.snap) x.snap = 1; if (e.mat) x.mat = { ...e.mat }; if (e.snaps && e.snaps.length) x.snaps = e.snaps.slice(); // rc6.5, rc6.5.1
   if (e.ko) { x.ko = e.ko; x.koMs = e.koMs; } if (e.shook) x.shook = e.shook; if (e.cp) x.cp = { id: e.cp.id, g: e.cp.g, name: CPM[e.cp.id] ? CPM[e.cp.id].name : "" }; if (e.bty && e.bty.length) x.bty = e.bty.map(b => ({ ...b })); if (e.boss) { x.boss = 1; x.dmg = e.dmg || 0; }
   L.push(x); if (L.length > TLOG_MAX) L.splice(0, L.length - TLOG_MAX); return x.id;
 }
@@ -3902,9 +3947,10 @@ const whenTxt = T => { const d = new Date(T - (S.offset || 0)); return d.toLocal
 function tripHTML(e, full) { // full = the "Party returned" card; otherwise one compact line block for the summary/log
   const res = e.boss ? `<b class="cpok">Hit for ${num(e.dmg || 0)}</b>` : e.failed ? `<b class="cpno">✗ Failed</b>` : `<b class="cpok">✓ Success</b>`;
   const loot = [`${IC.gold}+${num(e.gold)}`, e.pot ? `${IC.potion}+${e.pot}` : "", e.rat ? `${IC.ration}+${e.rat}` : "", e.wpn ? `${IC.sword}${wHTML(e.wpn)} <span class="small">(${esc(tierOf(e.wpn))} · ${rarN(e.wpn)})</span>` : "", e.mat ? `<span class="trm">${matTxt(e.mat)}</span>` : ""].filter(Boolean);
-  let h = `<div class="trip${full ? " big" : ""}" data-trip="${e.id || ""}"><div class="row trh"><span class="tic">${e.ic || "❔"}</span><div class="grow"><b>${esc(e.name || "?")}</b><div class="small">${e.snap ? "📸 Snapshot: " : ""}${esc(whoTxt(e.names || []))} · ${res}</div></div><span class="small trw">${whenTxt(e.T)}</span></div>`;
+  let h = `<div class="trip${full ? " big" : ""}" data-trip="${e.id || ""}"><div class="row trh"><span class="tic">${e.ic || "❔"}</span><div class="grow"><b>${esc(e.name || "?")}</b><div class="small">${e.snap ? "📸 Snapshot: " : ""}${esc(whoTxt((e.names || []).concat((e.snaps || []).map(n => "📸 " + n))))} · ${res}</div></div><span class="small trw">${whenTxt(e.T)}</span></div>`;
   if (!e.boss) h += `<div class="trl">${loot.join(" ")}</div>`;
   if (e.snap) h += `<div class="small">Snapshot run: no XP, no knockouts.</div>`;
+  else if (e.snaps && e.snaps.length) h += `<div class="small trsn">📸 Snapshots: ${esc(whoTxt(e.snaps))} (no XP, no knockouts)</div>`;
   if (e.xps && e.xps.length) h += `<div class="small trx">${e.xps.map(q => `${esc(q[0])} +${num(q[1])} XP`).join(" · ")}</div>`;
   (e.lv || []).forEach(l => h += `<div class="small trv">${IC.xp} <b>${esc(l)}!</b></div>`);
   if (e.cp) h += `<div class="small">🗺️ Campaign: ${esc(e.cp.name || "mission")} cleared · +${num(e.cp.g)} gold (in the total)</div>`;
@@ -3961,7 +4007,7 @@ const MAR = (() => {
     const L = out(t); let h = `<button class="sx" data-act="close" aria-label="Close">✕</button><h3>${IC.boot} March times</h3>`;
     if (!L.length) h += `<p class="small">No parties out right now.</p>`;
     h += `<div class="btns" style="margin:0 0 8px"><button class="alt" data-act="tripsOpen" id="tripsBtnM">📜 Recent trips</button></div>`;
-    for (const p of L) { const tg = tgOf(p.tid) || { name: "?", ic: "❔" }, names = p.ghost ? ["📸 " + whoTxt(p.names || [])] : p.members.map(hero).filter(Boolean).map(x => x.name), st = stage(p, t);
+    for (const p of L) { const tg = tgOf(p.tid) || { name: "?", ic: "❔" }, names = p.ghost ? ["📸 " + whoTxt(p.names || [])] : p.members.map(hero).filter(Boolean).map(x => x.name).concat(snapNames(p).map(n => "📸 " + n)), st = stage(p, t);
       h += `<button class="mrow" data-act="marGo" data-p="${p.id}"><span class="mic" aria-hidden="true">${tg.ic || "❔"}</span><span class="grow"><span class="mn">${esc(whoTxt(names))} · ${esc(tg.name)}</span><span class="ms">${st.txt} · <b data-cend="${st.next}">${fmtCL(st.next - t)}</b></span></span><span class="mtot">Home in<br><b data-cend="${p.end}">${fmtCL(p.end - t)}</b></span></button>`; }
     const UL = (S.ups || []).filter(u => BLD[u.b]).sort((a, c) => a.end - c.end); if (UL.length) h += `<h4>${IC.hammer} Building</h4>`;
     for (const U of UL) { const n = (S.b[U.b] || 0) + 1, rd = U.end <= t; h += `<button class="mrow" data-act="marGo" data-b="${U.b}"><span class="mic" aria-hidden="true">🏗️</span><span class="grow"><span class="mn">${esc(BLD[U.b])} → level ${n}</span><span class="ms">${rd ? "Done · tap to finish" : "Upgrading"}</span></span><span class="mtot">${rd ? "" : `Done in<br><b data-cend="${U.end}">${fmtCL(U.end - t)}</b>`}</span></button>`; }
@@ -4114,7 +4160,7 @@ bootCheck();
 if ("serviceWorker" in navigator && window.isSecureContext && !(TEST && QS.has("nosw"))) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(() => PUSH.sync()).catch(() => { }); });
 }
-window.TOWN = TEST ? { PUSH, NPA, MAR, v65: { RAR, RAR_KEYS, T2R, R2T, rarOf, ARM_B, armB, MAT, MAT_KEYS, MAT_PRICE, MAT_DROP, PIN_MAT, matRoll, matAdd, matN, RECIPE, recipeOf, canPay, craftMs, craftStart, smithBusy, sellOf, wCr, takeW, forgeOpts, colSync, snapOK, snapMem, snapSend, snapTake, RAID_HALL, RAID_WIN, RAID_WARN, RAID_KEEP, RAID_BASE, RAID_TOP, RAID_DEF, RAID_LOSS, raidSlots, raidNext, raidHome, raidDef, raidPow, raidWinP, raidLoot, raidLossOf, raidWarn, raidDue, raidBld, raidU, openRaid, openSnap, v65, basePow, failChance, partyPow, cpClear },  v64: { wbOpen, cpCan, cpWinnable, cpTarget, CP, CPM, CP_CH, cpOpen, cpNext, cpGold, cpTier, cpRuleWhy, cpCleared }, v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, WATER_TAPS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
+window.TOWN = TEST ? { PUSH, NPA, MAR, v651: { saveHW, partyCap, recovMs, REC_H, KO_MAX, KO_MIN, KNIGHT_CUT, snapTg, openWbSend, tripHTML, openTrips, snapOf, snapLive, depOf, snapBusy, canSnap, pickOK, selMem, slotsUsed, partyNames, v651, doSend, launch, ret, openSend, get send() { return send; }, set send(v) { send = v; } }, v65: { RAR, RAR_KEYS, T2R, R2T, rarOf, ARM_B, armB, MAT, MAT_KEYS, MAT_PRICE, MAT_DROP, PIN_MAT, matRoll, matAdd, matN, RECIPE, recipeOf, canPay, craftMs, craftStart, smithBusy, sellOf, wCr, takeW, forgeOpts, colSync, snapOK, snapMem, snapSend, snapTake, RAID_HALL, RAID_WIN, RAID_WARN, RAID_KEEP, RAID_BASE, RAID_TOP, RAID_DEF, RAID_LOSS, raidSlots, raidNext, raidHome, raidDef, raidPow, raidWinP, raidLoot, raidLossOf, raidWarn, raidDue, raidBld, raidU, openRaid, openSnap, v65, basePow, failChance, partyPow, cpClear },  v64: { wbOpen, cpCan, cpWinnable, cpTarget, CP, CPM, CP_CH, cpOpen, cpNext, cpGold, cpTier, cpRuleWhy, cpCleared }, v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, WATER_TAPS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
 </script>
 </body>
 </html>
