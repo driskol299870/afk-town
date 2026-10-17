@@ -3,7 +3,7 @@
 // rc6.0.1: "fails" also means the answer isn't the real game (host paused or out of credits): a non-200 status (402, 503, 404...),
 // a redirect to another origin, the wrong content type, or a page without the game's BUILD marker. Then the phone's copy is used,
 // and a bad answer is never cached over the good copy. The save is never stored here: it stays in localStorage "afktown.save".
-const PATCH = "rc6.3.2";
+const PATCH = "rc6.4.1";
 const CACHE = "afktown-" + PATCH;
 const CORE = ["index.html", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "version.json"];
 const LIMIT = 5000;
@@ -76,4 +76,19 @@ self.addEventListener("fetch", e => {
   const req = e.request; if (req.method !== "GET") return;
   const k = kindOf(new URL(req.url)); if (!k) return;
   e.respondWith(k.net ? netFirst(req, k.key) : copyFirst(req, k.key));
+});
+// rc6.4.1: "heroes are home" pushes from the afk-town-push Worker. Every push shows a visible notification, even if its data is unreadable.
+self.addEventListener("push", e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (x) { try { d = { body: e.data.text() }; } catch (y) { d = {}; } }
+  const title = String(d.title || "AFK Town").slice(0, 80), body = String(d.body || "Your heroes are home!").slice(0, 200);
+  e.waitUntil(self.registration.showNotification(title, { body, tag: String(d.tag || "afktown"), icon: scopeURL("icon-192.png"), badge: scopeURL("icon-192.png"), data: { url: scopeURL("./") } }));
+});
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || scopeURL("./");
+  e.waitUntil((async () => {
+    const cs = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const c of cs) if (c.url.startsWith(self.registration.scope) && "focus" in c) return c.focus();
+    if (self.clients.openWindow) return self.clients.openWindow(url);
+  })());
 });

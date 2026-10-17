@@ -299,6 +299,8 @@ html.mapon,html.mapon body{overflow:hidden;overscroll-behavior:none}
 @media (prefers-reduced-motion: reduce){.vlg{animation:none}}
 .tevm .tevx{position:absolute;right:-6px;top:-8px;background:var(--bad,#d33);color:#fff;border-radius:50%;width:18px;height:18px;font-size:13px;line-height:18px;font-weight:800;text-align:center}
 .colgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}.colent{display:flex;flex-direction:column;align-items:center;text-align:center;font-size:12px}.colent .colic{font-size:24px;height:34px;display:flex;align-items:center}.colent.no .colic{filter:grayscale(1) brightness(.4);opacity:.5}.colpage.gold{box-shadow:0 0 0 3px #e6b422,0 0 0 6px #fff3c4}
+.cpok{color:#2fa56a}.cpno{color:#d33}.rbwarn{color:#9a5a00;font-weight:700;margin-top:3px}
+.cpm{border:2px dashed #c9a46a;border-radius:12px;padding:6px 8px;margin:6px 0;background:#fbf1d8;max-width:calc(100% - 50px)}.cpm.done{border-style:solid;border-color:#e6b422;background:#fff6d6}.cpm.open{border-style:solid;border-color:#3a2a1f}.cpath{background:#f3e3bc}
 .cartm{position:absolute;padding:0;border:0;background:none;box-shadow:none;min-height:0;font-size:34px;line-height:1;filter:drop-shadow(0 3px 0 rgba(58,42,31,.35))}.cartm:active{transform:none;box-shadow:none}
 .cartm .blab{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);background:#fff3c4;color:var(--ink);border:2px solid var(--ink);border-radius:8px;padding:0 4px;font-size:11px;font-weight:800;line-height:14px;white-space:nowrap}
 .jem{font-size:18px;line-height:1}
@@ -454,7 +456,7 @@ html.clear #toast{bottom:176px}
 "use strict";
 const KEY = "afktown.save", MIN = 60e3, HR = 3600e3, SEC = 1e3;
 const TEST = /[?&]test(=|&|$)/.test(location.search);
-const BUILD = "rc6.3.2"; // the build tag on the Town screen; bump it each build
+const BUILD = "rc6.4.1"; // the build tag on the Town screen; bump it each build
 // ---------- sound and music (DESIGN 20, rc5.6): everything is made here in code with Web Audio. No files, no samples. ----------
 // rc5.8.2 (mark 69): music is on by default and fades in as the town shows; if the browser blocks audio it starts on the
 // first gesture of any kind (no prompt). Mute wins and lives in localStorage on this phone only (never in the save or the save code).
@@ -773,16 +775,16 @@ const IC = {
   ration: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 14c0-5 4-8 8-8s8 3 8 8v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" fill="#e8a95b" stroke="#3a2a1f" stroke-width="2"/><path d="M9 10l1 3M13 9l1 3" stroke="#a8692b" stroke-width="1.6" stroke-linecap="round"/></svg>',
   sword: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M14 3h7v7l-9 9-4-4z" fill="#dfe8f0" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M5 14l5 5M3 21l4-4" stroke="#3a2a1f" stroke-width="2.4" stroke-linecap="round"/></svg>',
   xp: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2l3 6.5 7 1-5 5 1.2 7L12 18l-6.2 3.5L7 14.5l-5-5 7-1z" fill="#ffd76a" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/></svg>',
-  boot: '<svg class="ic" viewBox="0 0 24 24"><path d="M7 3h7v9l6 3q2 1 2 3v2H3v-5q0-2 2-3z" fill="#a0653a" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M3 18h19" stroke="#3a2a1f" stroke-width="2"/><path d="M8 7h5" stroke="#6b3f22" stroke-width="2" stroke-linecap="round"/></svg>',
-  swords: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 3l9 9-2 2-9-9V3zM20 3l-9 9 2 2 9-9V3z" fill="#dfe8f0" stroke="#3a2a1f" stroke-width="1.8" stroke-linejoin="round"/><path d="M6 15l3 3M18 15l-3 3M4 20l3-3M20 20l-3-3" stroke="#8a5a3b" stroke-width="2.6" stroke-linecap="round"/></svg>',
-  shield: '<svg viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z" fill="#7fa7e8" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M12 6v12" stroke="#3a2a1f" stroke-width="1.6"/></svg>',
-  hammer: '<svg viewBox="0 0 24 24"><path d="M11 9l9 9-2.5 2.5-9-9z" fill="#a0653a" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M4 6l4-4 3 1 4 4-5 5-4-4z" fill="#9aa3ad" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/></svg>',
-  cross: '<svg viewBox="0 0 24 24"><rect x="2.5" y="2.5" width="19" height="19" rx="5" fill="#fff" stroke="#3a2a1f" stroke-width="2"/><path d="M12 6v12M6 12h12" stroke="#e5484d" stroke-width="4.5" stroke-linecap="round"/></svg>',
-  pin: '<svg viewBox="0 0 24 24"><path d="M12 22s-7-7-7-12a7 7 0 0 1 14 0c0 5-7 12-7 12z" fill="#ffd23f" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M12 5.5v5.5" stroke="#3a2a1f" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="14" r="1.5" fill="#3a2a1f"/></svg>',
+  boot: '<svg width="18" height="18" class="ic" viewBox="0 0 24 24"><path d="M7 3h7v9l6 3q2 1 2 3v2H3v-5q0-2 2-3z" fill="#a0653a" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M3 18h19" stroke="#3a2a1f" stroke-width="2"/><path d="M8 7h5" stroke="#6b3f22" stroke-width="2" stroke-linecap="round"/></svg>',
+  swords: '<svg width="18" height="18" class="ic" viewBox="0 0 24 24"><path d="M4 3l9 9-2 2-9-9V3zM20 3l-9 9 2 2 9-9V3z" fill="#dfe8f0" stroke="#3a2a1f" stroke-width="1.8" stroke-linejoin="round"/><path d="M6 15l3 3M18 15l-3 3M4 20l3-3M20 20l-3-3" stroke="#8a5a3b" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  shield: '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z" fill="#7fa7e8" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M12 6v12" stroke="#3a2a1f" stroke-width="1.6"/></svg>',
+  hammer: '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M11 9l9 9-2.5 2.5-9-9z" fill="#a0653a" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M4 6l4-4 3 1 4 4-5 5-4-4z" fill="#9aa3ad" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/></svg>',
+  cross: '<svg width="18" height="18" viewBox="0 0 24 24"><rect x="2.5" y="2.5" width="19" height="19" rx="5" fill="#fff" stroke="#3a2a1f" stroke-width="2"/><path d="M12 6v12M6 12h12" stroke="#e5484d" stroke-width="4.5" stroke-linecap="round"/></svg>',
+  pin: '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 22s-7-7-7-12a7 7 0 0 1 14 0c0 5-7 12-7 12z" fill="#ffd23f" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M12 5.5v5.5" stroke="#3a2a1f" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="14" r="1.5" fill="#3a2a1f"/></svg>',
   lock: '<svg viewBox="0 0 24 24" width="12" height="12"><rect x="4" y="10" width="16" height="12" rx="3" fill="#ffd76a" stroke="#3a2a1f" stroke-width="2.4"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="#3a2a1f" stroke-width="2.6"/></svg>',
-  check: '<svg viewBox="0 0 24 24"><path d="M4 12l5 5 11-11" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  bed: '<svg viewBox="0 0 24 24"><path d="M2 18V7M2 14h20v4M22 18v-4" fill="none" stroke="#3a2a1f" stroke-width="2.2" stroke-linecap="round"/><rect x="2" y="10" width="20" height="5" rx="2" fill="#bfe3ff" stroke="#3a2a1f" stroke-width="2"/><rect x="3.5" y="8" width="6" height="3" rx="1.5" fill="#fff" stroke="#3a2a1f" stroke-width="1.6"/></svg>',
-  heroes: '<svg viewBox="0 0 28 28"><circle cx="10" cy="9" r="5" fill="#ffdcb5" stroke="#3a2a1f" stroke-width="2"/><circle cx="19" cy="10" r="4.5" fill="#f1b98a" stroke="#3a2a1f" stroke-width="2"/><path d="M2 25c0-5 3-8 8-8s8 3 8 8z" fill="#e5484d" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M14 25c0-4 2-7 6-7s6 3 6 7z" fill="#fff1cc" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/></svg>',
+  check: '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M4 12l5 5 11-11" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  bed: '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M2 18V7M2 14h20v4M22 18v-4" fill="none" stroke="#3a2a1f" stroke-width="2.2" stroke-linecap="round"/><rect x="2" y="10" width="20" height="5" rx="2" fill="#bfe3ff" stroke="#3a2a1f" stroke-width="2"/><rect x="3.5" y="8" width="6" height="3" rx="1.5" fill="#fff" stroke="#3a2a1f" stroke-width="1.6"/></svg>',
+  heroes: '<svg width="18" height="18" viewBox="0 0 28 28"><circle cx="10" cy="9" r="5" fill="#ffdcb5" stroke="#3a2a1f" stroke-width="2"/><circle cx="19" cy="10" r="4.5" fill="#f1b98a" stroke="#3a2a1f" stroke-width="2"/><path d="M2 25c0-5 3-8 8-8s8 3 8 8z" fill="#e5484d" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M14 25c0-4 2-7 6-7s6 3 6 7z" fill="#fff1cc" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/></svg>',
   fist: '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 10.5V7.8a1.8 1.8 0 0 1 3.6 0V7a1.8 1.8 0 0 1 3.6 0v.4a1.8 1.8 0 0 1 3.6 0v1a1.8 1.8 0 0 1 3.2 1.1V14a7 7 0 0 1-7 7h-1.5A5.5 5.5 0 0 1 6 15.5z" fill="#ffd2a6" stroke="#3a2a1f" stroke-width="1.9" stroke-linejoin="round"/><path d="M9.6 8v3M13.2 7.4V11M16.8 8.4V11M6 12.5h4.5a1.8 1.8 0 0 1 0 3.6H8.5" fill="none" stroke="#3a2a1f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   warn: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2.5 23 21H1z" fill="#ffd23f" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><path d="M12 9v5.5" stroke="#3a2a1f" stroke-width="2.8" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.6" fill="#3a2a1f"/></svg>',
   bag: '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M8 5h8l-2 3h-4z" fill="#c98a4b" stroke="#3a2a1f" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 8h4c4 2 6 6 6 9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4c0-3 2-7 6-9z" fill="#e0a85a" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="15" r="3" fill="#ffcc33" stroke="#3a2a1f" stroke-width="1.6"/></svg>',
@@ -1030,6 +1032,7 @@ const tower = (x, y, w, h, roofH) => `<rect x="${x}" y="${y}" width="${w}" heigh
 function bldSVG(b, L, cls) {
   let s = `<svg ${cls ? `class="${cls}" ` : ""}viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">${SHADOW(60, 84, 58, 7)}<path d="M8 86 Q60 78 112 86" fill="none" stroke="#5f9a3a" stroke-width="3" stroke-linecap="round"/>`;
   if (b === "hall") {
+    if (S && S.camp && S.camp.crown) s += `<g class="crown" transform="translate(46 2)"><path d="M2 18 L0 4 L8 10 L14 0 L20 10 L28 4 L26 18 Z" fill="#ffcc33" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><circle cx="14" cy="12" r="2.4" fill="#e2463a"/></g>`; // rc6.4: the Elder Dragon's gold crown (map, Hall sheet and Town card)
     if (L >= 3) s += tower(86, 42, 18, 40, 18) + pennant(95, 10, BLUE, 1);
     s += tower(16, 34, 22, 48, 20) + pennant(27, 0, BLUE, 1);
     s += `<rect x="36" y="36" width="50" height="46" fill="${STONE}" ${O3}/>${bricks(36, 36, 50, 46, 6)}` + crenel(34, 30, 54, 5, STONE);
@@ -1200,7 +1203,7 @@ const PIN_ART = { w: 48, h: 48, ex: 24, ey: 44 };
 // where each path leaves, and the wooden gate arch on the south road.
 const VIL = { x: 50, y: 50, cy: 4, rx: 165, ry: 96, sq: [0, 20, 110, 62], gate: [0, 96], start: [0, 20],
   b: { hall: [-86, -14], shop: [86, -14], bank: [-86, -206], infirmary: [86, -206], bakery: [-86, -398], garden: [86, -398], smithy: [-86, -590] }, // rc6.3 (34): 7 big buildings in two streets north of the square, one slot each, never overlapping
-  home: [[-30, 62], [26, 62], [-30, 128], [26, 128], [82, 62], [82, 128], [-30, 194], [26, 194], [82, 194], [138, 62], [-30, 260], [-86, 260]] /* rc6.3: 12 spots, one per hero */, vil: [[0, -40], [0, -96], [0, -152], [0, -208], [0, -264]] /* rc6.3: villagers stroll up the lane between the two streets */, cart: [-148, 42], tev: [-150, 200] };
+  home: [[-30, 62], [26, 62], [-30, 128], [26, 128], [82, 62], [82, 128], [-30, 194], [26, 194], [82, 194], [138, 62], [-30, 260], [-86, 260]] /* rc6.3: 12 spots, one per hero */, vil: [[0, -40], [0, -96], [0, -152], [0, -208], [0, -264], [0, -320], [0, -376]] /* rc6.3: villagers stroll up the lane between the two streets */, cart: [-148, 42], tev: [-92, 40] /* rc6.4: moved up out from under the tabs at 360x640 */ };
 // each target's own winding dirt path: waypoints from the square out through its own fence gap to the entrance
 const PATHS = {
   rat: [[-30, 50], [-95, 79], [-78, 105]],
@@ -1304,7 +1307,7 @@ function load() {
   if (memSave) return memSave;
   return newSave();
 }
-function save() { if (!S) return; S.wp = BUILD; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { memSave = S; } } // wp: the patch that wrote it (DESIGN 16); nothing saves before the gate lets the town in
+function save() { if (!S) return; S.wp = BUILD; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { memSave = S; } if (PUSH) PUSH.tick(); } // wp: the patch that wrote it (DESIGN 16); nothing saves before the gate lets the town in
 const now = () => Date.now() + (S.offset || 0);
 
 // ---------- map pins ----------
@@ -1322,7 +1325,7 @@ function pinTarget(pin) {
   return { id: pin.id, pin: true, type: pin.type, name: pin.name, ic: P.ic, unlock: 1, base: P.base, need: P.need * h, gold: P.gold * h, xp: P.xp * h,
     wpn: pin.type === "dungeon" ? { p: .3, mix: [[wt, 1]] } : null, pot: pin.type === "animal" ? .3 : 0, rat: pin.type === "quest" ? .5 : 0, x, y };
 }
-function tgOf(id) { if (TGM[id]) return TGM[id]; if (id === "boss") return wbTarget(); const pin = S.pins.find(p => p.id === id); return pin ? pinTarget(pin) : null; }
+function tgOf(id) { if (TGM[id]) return TGM[id]; if (id === "boss") return wbTarget(); if (CPM[id]) return CPM[id]; const pin = S.pins.find(p => p.id === id); return pin ? pinTarget(pin) : null; }
 
 // ---------- rules ----------
 const hero = id => S.heroes.find(h => h.id === id);
@@ -1460,6 +1463,7 @@ function ret(p) {
   const ids = rest.map(h => h.id);
   if (!failed && tg.type === "dungeon") btyAdd("dungeon");
   if (!failed && TGM[p.tid]) colFoe(p.tid);
+  if (!failed && CPM[p.tid]) cpClear(p.tid, T, to, ev);
   if (tg.pin) S.pins = S.pins.filter(x => x.id !== p.tid); // a pin is a one-time target
   // no Repeat: every trip ends with the party waiting at the gate
   if (ids.length || full) S.gate.push({ tid: p.tid, name: tg.name, ic: tg.ic, members: ids, reason: full ? "Bank full" : failed ? (ev.shook ? "Run failed" : "Knocked out") : "Back home", loot: full ? to : null, T });
@@ -1515,6 +1519,7 @@ function jobs(t) {
   if (S.chores.list.length) J.push({ k: "broom", n: S.chores.list.length });
   { const n = btyReady(); if (n) J.push({ k: "bounty", n }); }
   if (merOn(t) && !S.mer.bought) J.push({ k: "cart" });
+  if (tevOn(t)) J.push({ k: "event" }); // rc6.4: a town event is live
   return J;
 }
 
@@ -1721,10 +1726,15 @@ const A = {
     else if (k === "cross") openBld("infirmary", +d.h);
     else if (k === "sword") openPanel(+d.h);
     else if (k === "gift" || k === "broom") { if (TAB !== "town") { TAB = "town"; closeSheet(); render(); } else closeSheet(); const el = $(k === "gift" ? "#dailyCard" : "#choreCard"); if (el) { el.scrollIntoView({ block: "center" }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } } // jumps, never does it (19)
+    else if (k === "event") { closeSheet(); openTev([]); }
     else if (k === "bounty" || k === "cart") { if (TAB !== "town") { TAB = "town"; closeSheet(); render(); } else closeSheet(); const el = $(k === "bounty" ? "#btyCard" : "#merCard"); if (el) { el.scrollIntoView({ block: "center" }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } }
     else if (k === "pin") { if (TAB !== "map") { TAB = "map"; closeSheet(); render(); } else closeSheet(); jumpPin(d.p); }
   },
   tevOpen() { openTev([]); },
+  cpOpen() { openCamp(); },
+  cpCh(d) { openCamp(+d.c); },
+  cpGo(d) { const t = now(); process(t); if (!cpOpen(d.m)) return toast("That mission isn't open."); if (busy(d.m)) return toast("A party is already there."); send = { tid: d.m, sel: [] }; openSend(); },
+  cpLeg(d) { const t = now(); process(t); if (S.camp.leg !== 1 || !CLS[d.c]) return; S.camp.leg = 2; S.bank.weapons.push(wOf("legendary", d.c)); S.bank.from = S.bank.from || []; if (!S.bank.from.includes("Elder Dragon")) S.bank.from.push("Elder Dragon"); commit(); openCamp(4); toast(`A Legendary ${CLS[d.c].wname} is in the bank.`); },
   tevSel(d) { const id = +d.h, s0 = TEVSEL.slice(); const i = s0.indexOf(id); if (i >= 0) s0.splice(i, 1); else if (s0.length < 2) s0.push(id); openTev(s0); },
   tevGo() { const t = now(); process(t); if (!tevOn(t)) { closeSheet(); return toast("That event is over."); }
     const mem = TEVSEL.map(hero).filter(h => avail(h, t)); if (!mem.length || mem.length > 2 || mem.reduce((a, h) => a + power(h), 0) < tevNeed()) return;
@@ -1883,6 +1893,7 @@ const A = {
   gear() { openSettings(); },
   swMusic() { AUD.setSw(!AUD.musicOn, AUD.sfxOn); openSettings(); render(); },
   swSfx() { AUD.setSw(AUD.musicOn, !AUD.sfxOn); openSettings(); render(); },
+  swPush() { PUSH.toggle().then(() => { if (sheetKind === "settings") openSettings(); }); },
   tipsReset() { TIP.reset(); toast("Tips are back on."); },
   tclaim() { if (!TEST) return; AUD.cue("claim", "test"); },
   tfail() { if (!TEST) return; S.failNext = !S.failNext; commit(); },
@@ -1893,6 +1904,7 @@ function doSend(tid, ids) {
   const tg = tgOf(tid); if (!tg) { toast("That spot is gone."); return false; }
   if (tid === "boss" && !wbLive(t)) { toast("No boss right now."); return false; }
   if (busy(tid)) { toast("A party is already there."); return false; }
+  if (tg.camp) { if (!cpOpen(tid)) { toast("That mission isn't open."); return false; } const why = cpRuleWhy(tg, ids.map(hero).filter(Boolean)); if (why) { toast(why); return false; } }
   if (S.parties.length >= partyCap()) { toast(`${partyCap()} parties can be out at once. Upgrade the hall for more.`); return false; } // rc6.2.1 (DESIGN 36)
   if (!ids.length) { toast("Pick at least one hero."); return false; }
   if (ids.length > MAXP) { toast(`A party holds up to ${MAXP}.`); return false; }
@@ -1999,10 +2011,12 @@ const offerCost = o => recruitCost() * (o.vet ? 2 : 1);
 // No time effects of any kind: it never touches trip times, fast travel or pay. A missed event is gone.
 const TEV_KINDS = [["🛞", "A cart is stuck in the mud"], ["🐺", "Wolves at the sheep pen"], ["🧒", "A child is lost in the meadow"], ["🪣", "The well bucket fell in"], ["🐐", "A goat is on the roof"], ["🍎", "The apple tree needs picking"]];
 const TEV_JOB = 5 * MIN, TEV_HX = 0.5;
+function v64(s) { if (!s.camp || typeof s.camp !== "object") s.camp = { clr: {}, leg: 0, crown: 0 }; if (!s.camp.clr) s.camp.clr = {}; }
 function v632(s) {
   if (!s.tev || typeof s.tev !== "object") s.tev = { key: "", last: 0, kind: 0, done: [], run: null };
   if (!s.col || typeof s.col !== "object") s.col = { w: {}, f: {}, v: {}, h: {}, paid: {} };
   for (const k of ["w", "f", "v", "h", "paid"]) if (!s.col[k]) s.col[k] = {};
+  v64(s);
 }
 const tevKey = t => { const d = new Date(t); return d.getHours() % 2 === 0 ? dayKey(t) + "@" + d.getHours() : ""; };
 const tevNum = k => { const m = /^(.+)@(\d+)$/.exec(k || ""); return m ? dkNum(m[1]) * 100 + +m[2] : 0; };
@@ -2049,8 +2063,8 @@ function tevMap(t, k, ly) {
 const COL_W = () => CLS_KEYS.flatMap(c => ["rusty", "iron", "steel", "enchanted", "legendary"].map(tk => tk + ":" + c));
 const COL_PAGES = {
   w: { name: "Weapons", ic: "⚔️", all: () => COL_W() },
-  f: { name: "Foes", ic: "👹", all: () => [...TG.map(x => x.id), ...WB_LIST.map((_, i) => "wb" + i)] },
-  v: { name: "Villagers", ic: "🧑‍🌾", all: () => VNAMES.slice(0, 5).map(v => v[0]) } /* only 5 villagers can ever move in */,
+  f: { name: "Foes", ic: "👹", all: () => [...TG.map(x => x.id), ...WB_LIST.map((_, i) => "wb" + i), ...CP.filter(m => m.cpBoss).map(m => m.id)] },
+  v: { name: "Villagers", ic: "🧑‍🌾", all: () => [...VNAMES.slice(0, 5).map(v => v[0]), ...CP_VIL.map(v => v[0])] } /* 5 by Hall level + 2 from the campaign */,
   h: { name: "Heroes", ic: "🛡️", all: () => CLS_KEYS.slice() },
 };
 const COL_HX = 5;
@@ -2073,12 +2087,88 @@ function openCol(pg) {
   h += `<div class="card colpage${paid ? " gold" : ""}" style="margin-top:8px"><div class="colgrid">`;
   all.forEach(x => { const got = !!S.col[pg][x]; let ic = "?", nm = x;
     if (pg === "w") { const [tk, c] = x.split(":"); nm = `${TIERS[tk].name} ${CLS[c].wname}`; ic = got ? `<span class="mini">${heroSVG(c, 7, tk)}</span>` : "❔"; }
-    if (pg === "f") { const T = TGM[x], W = WB_LIST[+x.slice(2)]; nm = T ? T.name : W.name; ic = T ? T.ic : W.ic; }
+    if (pg === "f") { const T = TGM[x] || CPM[x], W = WB_LIST[+x.slice(2)]; nm = T ? T.name : W.name; ic = T ? T.ic : W.ic; }
     if (pg === "v") { ic = "🧑‍🌾"; }
     if (pg === "h") { nm = CLS[x].name; ic = `<span class="mini">${heroSVG(x, 7, "starter")}</span>`; }
     h += `<div class="colent${got ? "" : " no"}" title="${esc(nm)}"><span class="colic">${ic}</span><span class="small">${got ? esc(nm) : "???"}</span></div>`; });
   h += `</div></div><div class="btns">${done && !paid ? `<button class="go" data-act="colClaim" data-p="${pg}">Claim · ${IC.gold} ${num(btyPay(COL_HX, t))}</button>` : paid ? `<span class="pill st-home">Page complete</span>` : ""}<button class="alt" data-act="close">Close</button></div>`;
   openSheet(h, "col:" + pg);
+}
+
+// ---------- rc6.4 (DESIGN 32, 35): the story campaign ----------
+// 4 chapters x 5 missions, mission 5 a boss. Each mission is a one-time trip with a team rule, a Need and a set time (half time and the
+// 5-min walk / 1-h job caps apply, like every trip). A win's first clear pays once, keyed by mission id: gold = the larger of the table and
+// hours x 1.5 x H (a boss: the larger of the table and 5 H), then the prestige bonus, then the cap at half the next Hall upgrade.
+// Trip gold is 0 (so nothing feeds H); XP is normal trip XP. A loss is a normal failure and can be retried. Cleared missions can't be replayed.
+const CP_CH = [
+  { n: 1, name: "Shadows over Oakvale", hall: 1, need: [30, 45, 60, 80, 110], min: [20, 25, 30, 35, 40], boss: 300, tier: "iron", bn: "Goblin Warlord", bic: "👺", unl: "Unlocks the weekly world boss." },
+  { n: 2, name: "The Whispering Wood", hall: 2, need: [150, 190, 240, 300, 380], min: [45, 55, 65, 75, 90], boss: 1200, tier: "steel", bn: "Witch of the Wood", bic: "🧙", unl: "Hazel the Herbalist moves in." },
+  { n: 3, name: "The Mountain Pass", hall: 3, need: [450, 560, 690, 840, 1000], min: [90, 110, 130, 150, 180], boss: 4000, tier: "enchanted", bn: "Stone Giant", bic: "🗿", unl: "Gunnar the Smith moves in." },
+  { n: 4, name: "Return of the Dragon", hall: 4, need: [1200, 1500, 1850, 2250, 2000] /* rc6.4.1 (Bravo): Elder Dragon 2,700 -> 2,000 so a maxed Enchanted party is >= 1.5x */, min: [180, 225, 270, 315, 360], boss: 12000, tier: "legendary", bn: "Elder Dragon", bic: "🐲", unl: "A Legendary weapon for a class you choose, and a gold crown on the Hall." },
+];
+const CP_VIL = [["Hazel", "garden", "cp10"], ["Gunnar", "smithy", "cp15"]];
+// rc6.4.1: a rule is one or more options ("any"); an option is {n: heroes, c: classes that must all go, k: different classes}.
+// Every rule can be met by a full town at its chapter's Hall (2 per class means a full town has at least half as many classes as heroes).
+const R_ = (txt, ...any) => ({ txt, any: any.length ? any : [{}] });
+const CP_RULES = [
+  [R_("Any party"), R_("Needs 2 heroes", { n: 2 }), R_("An Archer, or any 2 heroes", { c: ["archer"] }, { n: 2 }), R_("A Warrior, or any 2 heroes", { c: ["warrior"] }, { n: 2 }), R_("Needs 2 heroes", { n: 2 })],
+  [R_("A Healer or an Archer", { c: ["healer"] }, { c: ["archer"] }), R_("Needs 3 heroes", { n: 3 }), R_("Any party"), R_("Heroes of 2 different classes", { k: 2 }), R_("A Healer and 3 heroes, or any 4", { c: ["healer"], n: 3 }, { n: 4 })],
+  [R_("A Rogue or an Archer", { c: ["rogue"] }, { c: ["archer"] }), R_("Needs 4 heroes", { n: 4 }), R_("Heroes of 3 different classes", { k: 3 }), R_("Needs 3 heroes", { n: 3 }), R_("A Healer and 4 heroes, or any 5", { c: ["healer"], n: 4 }, { n: 5 })],
+  [R_("A Knight or a Warrior", { c: ["knight"] }, { c: ["warrior"] }), R_("Needs 5 heroes", { n: 5 }), R_("A Healer with a Knight or a Warrior", { c: ["healer", "knight"] }, { c: ["healer", "warrior"] }), R_("Needs 5 heroes", { n: 5 }), R_("A Knight and 5 heroes, or any 6", { c: ["knight"], n: 5 }, { n: 6 })],
+];
+const optOK = (o, mem) => mem.length >= (o.n || 1) && (o.c || []).every(c => mem.some(h => h.cls === c)) && new Set(mem.map(h => h.cls)).size >= (o.k || 1);
+const optCan = (o, pool) => Math.min(MAXP, pool.length) >= Math.max(o.n || 1, (o.c || []).length, o.k || 1) && (o.c || []).every(c => pool.some(h => h.cls === c)) && new Set(pool.map(h => h.cls)).size >= (o.k || 1);
+const cpCan = (m, pool = S.heroes) => m.rule.any.some(o => optCan(o, pool)); // could the town (or this pool) field a legal party at all?
+const cpBest = m => S.heroes.map(power).sort((a, b) => b - a).slice(0, MAXP).reduce((a, b) => a + b, 0);
+const cpWinnable = m => !!m && cpCan(m) && cpBest(m) >= m.need; // bounty: only when a legal party can reach the Need
+const cpTarget = () => CP.find(m => !cpCleared(m.id)) || null; // the open or next mission
+const CP_STORY = [
+  [["Goblin Scouts", "🗡️", "Goblin scouts were seen at the edge of the wheat fields. Chase them off before they tell their friends."], ["The Burned Barn", "🔥", "A barn on the Miller farm was set alight in the night. Find who did it and put out the last of the fire."], ["Tracks in the Mud", "🐾", "Small muddy footprints lead into the hills. An Archer's sharp eyes can follow them."], ["The Raiders' Camp", "⛺", "The goblins have a camp by the old mill. Knock down their tents and take back the stolen grain."], ["Goblin Warlord", "👺", "The Warlord himself rides a giant boar. Beat him and Oakvale's farms are safe again."]],
+  [["Fever in the Village", "🤒", "Villagers are falling sick after drinking from the forest stream. A Healer must find out why."], ["Wolf Howls", "🐺", "A wolf pack circles the woodcutters' huts. Go in numbers and drive them deep into the wood."], ["The Poisoned Spring", "💧", "Dark roots choke the spring. Cut them out and the water will run clear."], ["Lost in the Pines", "🌲", "Two herb pickers never came home. Search the pines and bring them back safely."], ["Witch of the Wood", "🧙", "At the heart of the wood the Witch brews her sickness. End her spells for good."]],
+  [["The Blocked Road", "🪨", "Boulders block the trade road through the pass. Only a Rogue knows the hidden way around."], ["Troll Toll", "👹", "Trolls demand a toll from every cart. Show them the town won't pay."], ["The Rockslide", "⛰️", "A rockslide traps a merchant caravan. Dig them out and patch up the wounded."], ["Cave of Echoes", "🦇", "Bats and worse fill the cave the trolls call home. Clear it out."], ["Stone Giant", "🗿", "The Stone Giant wakes and stomps the road to rubble. Bring it down."]],
+  [["Smoke on the Peak", "💨", "Smoke rises from the dragon's mountain for the first time in a hundred years. A Knight leads the way."], ["The Ash Fields", "🌋", "The fields below the mountain are burning. Hold the line while the farms escape."], ["Dragon Cultists", "🕯️", "Hooded cultists want the dragon free. Stop their ritual before it's too late."], ["The Scorched Gate", "🏯", "The old fortress gate is the only way up. Break through its guards."], ["Elder Dragon", "🐲", "The Elder Dragon spreads its wings over the valley. This is the town's greatest fight."]],
+];
+const CP = CP_CH.flatMap((C, ci) => C.need.map((need, mi) => {
+  const id = "cp" + (ci * 5 + mi + 1), boss = mi === 4, [name, ic, story] = CP_STORY[ci][mi], hrs = C.min[mi] / 60;
+  return { id, camp: 1, ch: ci + 1, mi: mi + 1, cpBoss: boss, type: "campaign", name, ic, story, need, base: C.min[mi] * MIN, unlock: C.hall, gold: 0, xp: Math.round(50 * hrs), wpn: null, pot: 0, hrs,
+    tgold: boss ? C.boss : Math.round(C.boss * [.15, .267, .383, .5][mi]), tier: boss ? C.tier : null, rule: CP_RULES[ci][mi] };
+}));
+const CP_VIA = ["goblin", "crypt", "troll", "dragon"];
+CP.forEach(m => { const v = TGM[CP_VIA[m.ch - 1]]; m.via = v.id; m.x = v.x; m.y = v.y; });
+const CPM = Object.fromEntries(CP.map(m => [m.id, m]));
+const cpCleared = id => !!(S.camp && S.camp.clr[id]);
+const cpOpen = id => { const m = CPM[id], i = CP.indexOf(m); return !!m && !cpCleared(id) && S.b.hall >= m.unlock && (i === 0 || cpCleared(CP[i - 1].id)); };
+const cpNext = () => CP.find(m => cpOpen(m.id)) || null;
+function cpRuleWhy(m, mem) {
+  if (!mem.length || m.rule.any.some(o => optOK(o, mem))) return "";
+  return `This party doesn't meet the rule: ${m.rule.txt}`;
+}
+const TIER_RANK = ["rusty", "iron", "steel", "enchanted", "legendary"];
+const cpTier = m => { const a = TIER_RANK.indexOf(m.tier), b = TIER_RANK.indexOf(wbTier()); return TIER_RANK[Math.max(a, b)]; };
+const cpGold = (m, t) => Math.min(wbCap(), Math.round(Math.max(m.tgold, m.cpBoss ? 5 * wbH(t) : m.hrs * 1.5 * wbH(t)) * goldB())); // the order in (35): H rule, prestige, then the cap
+function cpClear(id, T, to, ev) {
+  const m = CPM[id]; if (!m || cpCleared(id)) return; // one-time, keyed by mission id
+  S.camp.clr[id] = T; const g = cpGold(m, T); to.gold += g; ev.gold += g; ev.cp = { id, g };
+  if (!m.cpBoss) { if (m.mi % 2) { to.potions += 2; ev.pot = (ev.pot || 0) + 2; } else { to.rations = (to.rations || 0) + 2; ev.rat = (ev.rat || 0) + 2; } }
+  else if (m.ch < 4) { const w = wOf(cpTier(m), dCls()); to.weapons.push(w); ev.wpn = w; }
+  else { S.camp.leg = 1; S.camp.crown = 1; } // the Legendary is chosen in the campaign sheet
+  if (m.cpBoss) colFoe(id);
+  btyAdd("camp"); vilCamp();
+  if (LIVE && !document.hidden) setTimeout(() => toast(`${m.name} cleared! +${num(g)} gold${m.cpBoss ? " · " + CP_CH[m.ch - 1].unl : ""}`), 50);
+}
+function vilCamp() { if (!S.vil || !S.camp) return; for (const [name, best, need] of CP_VIL) if (S.camp.clr[need] && !S.vil.some(v => v.cp && v.name === name)) S.vil.push({ id: Math.max(0, ...S.vil.map(v => v.id)) + 1, name, best, seed: hash32(name) % 99991 + 7, wk: 0, at: null, cp: 1 }); }
+function openCamp(ch) {
+  const t = now(); process(t); const nx = cpNext(); ch = ch || (nx ? nx.ch : 4);
+  let h = `<h3>🗺️ Campaign</h3><div class="chips">${CP_CH.map(C => `<button class="chip ${C.n === ch ? "on" : ""}" data-act="cpCh" data-c="${C.n}">${C.n}. ${S.b.hall < C.hall ? IC.lock + " " : ""}${esc(C.name)}</button>`).join("")}</div>`;
+  if (S.camp.leg === 1) h += `<div class="card" id="cpLeg" style="margin-top:8px"><b>🐲 Choose your Legendary weapon</b><div class="chips">${CLS_KEYS.map(c => `<button class="chip" data-act="cpLeg" data-c="${c}"><span class="mini">${heroSVG(c, 7, "legendary")}</span>${CLS[c].name}</button>`).join("")}</div></div>`;
+  const C = CP_CH[ch - 1];
+  h += `<div class="card cpath" style="margin-top:8px"><div class="small">Chapter ${C.n} · Hall ${C.hall} · Boss: ${C.bic} ${esc(C.bn)} · ${esc(C.unl)}</div>`;
+  CP.filter(m => m.ch === ch).forEach((m, i) => { const done = cpCleared(m.id), op = cpOpen(m.id), out = busy(m.id), P = runParts([], m);
+    h += `<div class="cpm${done ? " done" : ""}${op ? " open" : ""}" style="margin-left:${[0, 40, 10, 50, 20][i]}px"><div class="row"><span class="tic">${done ? "🏅" : op ? m.ic : IC.lock}</span><div class="grow"><b>${m.mi}. ${esc(m.name)}</b>${m.cpBoss ? ` <span class="pill st-ko">Boss</span>` : ""}<div class="small">${esc(m.story)}</div>
+      ${!done && !cpCan(m) ? `<div class="small rbwarn">${IC.warn.replace('width="22" height="22"', 'width="16" height="16"')} Your heroes can't make this team yet. Recruit to fill the rule.</div>` : ""}<div class="small">${m.rule.txt} · Need <b>${fistN(m.need)}</b> · ${IC.clock} ${fmtCL(P.total)} · first clear ${IC.gold} ${num(cpGold(m, t))}${m.cpBoss ? m.ch < 4 ? ` + ${TIERS[cpTier(m)].name} weapon` : " + Legendary + crown" : m.mi % 2 ? ` + 2 ${IC.potion}` : ` + 2 ${IC.ration}`}</div></div></div>
+      ${done ? `<div class="small">Cleared · can't be replayed for rewards</div>` : out ? `<div class="small">A party is on the way.</div>` : op ? `<div class="btns"><button class="go" data-act="cpGo" data-m="${m.id}">Send a party</button></div>` : S.b.hall < m.unlock ? `<div class="small">${IC.lock} Hall ${m.unlock}</div>` : `<div class="small">Clear the mission before first.</div>`}</div>`; });
+  h += `</div><div class="btns"><button class="alt" data-act="close">Close</button></div>`;
+  openSheet(h, "camp:" + ch);
 }
 function v63(s) { // rc6.3 fields, added once; nothing else in the save changes
   const t = Date.now() + (s.offset || 0);
@@ -2094,7 +2184,7 @@ function v63(s) { // rc6.3 fields, added once; nothing else in the save changes
 const vLvl = v => v ? Math.min(10, 1 + Math.floor((v.wk || 0) / DAY_MS)) : 0;
 const vAt = b => (S.vil || []).find(v => v.at === b && S.b[b] > 0) || null;
 const vLvlAt = b => vLvl(vAt(b));
-function vilSync() { while (S.vil.length < Math.min(S.b.hall, 5)) { const i = S.vil.length, [name, best] = VNAMES[i % VNAMES.length]; S.vil.push({ id: i + 1, name, best, seed: 1000 + i * 7919, wk: 0, at: null }); } }
+function vilSync() { vilCamp(); while (S.vil.filter(v => !v.cp).length < Math.min(S.b.hall, 5)) { const i = S.vil.filter(v => !v.cp).length, [name, best] = VNAMES[i % VNAMES.length]; S.vil.push({ id: S.vil.length ? Math.max(...S.vil.map(v => v.id)) + 1 : 1, name, best, seed: 1000 + i * 7919, wk: 0, at: null }); } }
 const prodMs = b => Math.round((PROD[b].base - PROD[b].step * vLvlAt(b)) * MIN / (1 + .1 * (S.b[b] - 1)));
 const forgeMs = () => Math.round(FORGE_MS * (1 - FORGE_STEP * vLvlAt("smithy")));
 function townSync(t) {
@@ -2184,6 +2274,7 @@ function forgeBlock(t) {
 const BTY = {
   trips: { n: 3, txt: "Send 3 trips" }, dungeon: { n: 1, txt: "Clear a dungeon" }, chore: { n: 1, txt: "Finish a chore" }, collect: { n: 1, txt: "Collect the bank" },
   boss: { n: 1, txt: "Hit the world boss", ok: () => wbOpen() }, buy: { n: 1, txt: "Buy something in the shop" }, forge: { n: 1, txt: "Use the Forge", ok: () => S.b.smithy > 0 },
+  camp: { n: 1, txt: "Win a campaign mission", ok: () => cpWinnable(cpNext()) }, // rc6.4.1: only when an open mission can be won
 };
 const btyPay = (x, t) => Math.min(wbCap(), Math.round(x * wbH(t) * goldB()));
 // rc6.3 fix: day keys are compared as numbers; the board never goes back to an older day (clock-change exploit),
@@ -2310,7 +2401,8 @@ function openRecruit() {
   let h = `<h3>Recruit board</h3><p class="small">Heroes ${S.heroes.length} of ${SLOTS[S.b.hall - 1]}. ${full ? "Upgrade the hall for more slots." : `Hiring costs ${num(c)} gold.`} New faces in <span data-cend="${nx}">${fmtCL(nx - t)}</span>.</p>`;
   const offs = S.rb.offers || []; if (!offs.length) h += `<p class="small">Nobody new right now.</p>`;
   offs.forEach((o, i) => { const ok = hireOK(o.cls), oc = offerCost(o);
-    h += `<div class="card row"><div class="portrait">${heroSVG(o.cls, o.seed, "starter")}</div><div class="grow"><b>${esc(o.name)}</b>${o.vet ? ` <span class="pill st-gate">Veteran · rank ${vetRank()}</span>` : ""}<div class="rcls">${CLS[o.cls].name}</div><div class="small">${ok ? CLS[o.cls].edge : `You have ${CLS_CAP} ${CLS_PL[o.cls]}.`}</div>
+    const cm = cpTarget(), lastSlot = S.heroes.length + 1 === SLOTS[S.b.hall - 1], trap = ok && cm && lastSlot && !cpCan(cm, [...S.heroes, { cls: o.cls }]);
+    h += `<div class="card row"><div class="portrait">${heroSVG(o.cls, o.seed, "starter")}</div><div class="grow"><b>${esc(o.name)}</b>${o.vet ? ` <span class="pill st-gate">Veteran · rank ${vetRank()}</span>` : ""}<div class="rcls">${CLS[o.cls].name}</div><div class="small">${ok ? CLS[o.cls].edge : `You have ${CLS_CAP} ${CLS_PL[o.cls]}.`}</div>${trap ? `<div class="small rbwarn">${IC.warn.replace('width="22" height="22"', 'width="16" height="16"')} Last free slot: campaign mission "${esc(cm.name)}" needs ${esc(cm.rule.txt.toLowerCase())}.</div>` : ""}
       <button class="go" data-act="recruit" data-i="${i}" ${full || !ok || S.gold < oc ? "disabled" : ""}>Hire · ${IC.gold} ${num(oc)}</button></div></div>`; });
   h += `<div class="btns"><button class="alt" data-act="reroll" ${S.gold < REROLL_PRICE ? "disabled" : ""}>New faces · ${IC.gold} ${REROLL_PRICE}</button><button class="alt" data-act="close">Close</button></div>`;
   openSheet(h, "recruit");
@@ -2416,7 +2508,7 @@ function openBld(b, focus) {
   if (b === "smithy" && L) h += forgeBlock(t);
   h += `<div style="margin-top:10px">${upgBlock(b, t)}</div>`;
   if (b === "hall") h += yardBlock(t) + btyCard(t, true);
-  if (b === "hall") h += `<div class="btns">${recBtn()}<button class="alt" data-act="colOpen">📖 Collections${colN() >= 10 ? ` · ${"🏅".repeat(Math.min(5, Math.floor(colN() / 10)))}${colN() >= 60 ? "+" : ""}` : ""}</button><button class="alt" data-act="copyCode">Copy save code</button><button class="alt" data-act="pasteCode">Paste save code</button><button class="alt" data-act="tipsReset">Show tips again</button></div><div class="small" id="lastBackup" style="margin-top:6px">Last backup: ${backupAgo(t)}</div>`;
+  if (b === "hall") h += `<div class="btns">${recBtn()}<button class="alt" data-act="cpOpen" id="cpBtn">🗺️ Campaign</button><button class="alt" data-act="colOpen">📖 Collections${colN() >= 10 ? ` · ${"🏅".repeat(Math.min(5, Math.floor(colN() / 10)))}${colN() >= 60 ? "+" : ""}` : ""}</button><button class="alt" data-act="copyCode">Copy save code</button><button class="alt" data-act="pasteCode">Paste save code</button><button class="alt" data-act="tipsReset">Show tips again</button></div><div class="small" id="lastBackup" style="margin-top:6px">Last backup: ${backupAgo(t)}</div>`;
   if (b === "shop") h += `<div class="btns"><button class="go" data-act="tab" data-tab="stores">${NAV.stores.replace("<svg", '<svg width="20" height="20"')} Buy and sell</button></div>`;
   h += `<div class="btns"><button class="alt" data-act="close">Close</button></div>`;
   openSheet(h, "bld:" + b);
@@ -2426,7 +2518,7 @@ function openSend() {
   const t = now(), tg = tgOf(send.tid); if (!tg) return closeSheet();
   send.sel = send.sel.filter(id => avail(hero(id), t));
   const mem = send.sel.map(hero), free = S.heroes.filter(h => avail(h, t));
-  let h = `<div class="pophead"><span class="tic">${tg.ic}</span><div class="grow"><h3>${esc(tg.name)}</h3><div class="small">Need <b id="sendNeed">${fistN(tg.need)}</b> · ${IC.gold} ~<span id="sendGold">${num(baseGold(tg, mem.length ? payScale(mem, tg, t) : 1) * goldB())}</span> · ${IC.xp} <span id="sendXP">${tg.xp}</span> each</div></div></div>
+  let h = `<div class="pophead"><span class="tic">${tg.ic}</span><div class="grow"><h3>${esc(tg.name)}</h3><div class="small">Need <b id="sendNeed">${fistN(tg.need)}</b> · ${tg.camp ? `first clear ${IC.gold} ${num(cpGold(tg, t))}` : `${IC.gold} ~<span id="sendGold">${num(baseGold(tg, mem.length ? payScale(mem, tg, t) : 1) * goldB())}</span>`} · ${IC.xp} <span id="sendXP">${tg.xp}</span> each</div></div></div>
     <div class="chips" style="margin-top:10px">`;
   if (!free.length) h += `<p>Nobody is free right now.</p>`;
   S.heroes.filter(x => inYard(x.id)).forEach(x => h += `<button class="chip" disabled><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)} · Training</button>`);
@@ -2444,6 +2536,7 @@ function openSend() {
       ${mem.some(x => carries(x, "ration")) ? `<div class="small">${IC.ration} 1 Ration will be used (walks 25% faster).</div>` : ""}</div>`;
   }
   if (tg.pin) h += `<p class="small">One-time spot. It's gone once they're home.</p>`;
+  if (tg.camp) { const why = cpRuleWhy(tg, mem); h += `<p class="small" id="cpRule">🗺️ Campaign · ${tg.rule.txt} · ${why ? `<b class="cpno">✗ Not met yet</b>` : `<b class="cpok">✓ OK</b>`}</p>`; }
   // a warning, never a lock (DESIGN 4): Send stays tappable whenever someone is picked
   send.full = bankFull(now());
   if (send.full) h += `<div class="warnbar bankbar" id="bankWarn">${IC.gold}<span>Bank full. Loot will wait at the gate.</span></div>`;
@@ -2491,7 +2584,7 @@ function statusText(h, t) {
   if (inYard(h.id)) return `<span class="pill st-gate">Training</span>`;
   return `<span class="pill st-home">Home</span>`;
 }
-const JOB_IC = { coin: () => IC.gold.replace(/ width="18" height="18"/, ""), hammer: () => IC.hammer, cross: () => IC.cross, pin: () => IC.pin, sword: () => IC.sword.replace(/ width="18" height="18"/, ""), gift: () => IC.gift.replace(/ width="18" height="18"/, ""), broom: () => IC.broom.replace(/ width="18" height="18"/, ""), bounty: () => `<span class="jem">📋</span>`, cart: () => `<span class="jem">🛒</span>` };
+const JOB_IC = { coin: () => IC.gold.replace(/ width="18" height="18"/, ""), hammer: () => IC.hammer, cross: () => IC.cross, pin: () => IC.pin, sword: () => IC.sword.replace(/ width="18" height="18"/, ""), gift: () => IC.gift.replace(/ width="18" height="18"/, ""), broom: () => IC.broom.replace(/ width="18" height="18"/, ""), bounty: () => `<span class="jem">📋</span>`, cart: () => `<span class="jem">🛒</span>`, event: () => `<span class="jem">${TEV_KINDS[S.tev.kind][0]}</span>` };
 // ---------- rc6: daily check-in (DESIGN 18) and town chores (DESIGN 19, rc6 items 6 and 7) ----------
 // Both pay straight to stores (one gold pile, 5a), skip the bank, and are never halved or scaled by fast travel (27).
 // The prestige bonus (23) multiplies their gold. No new currency.
@@ -2656,6 +2749,7 @@ function openSettings() {
   openSheet(`<button class="sx" data-act="close" aria-label="Close">✕</button><h3>${IC.gear} Settings</h3>
     <div class="setrow"><div class="grow"><b>Music</b><div class="small">The town tune</div></div>${swBtn("swMusic", "swMusic", AUD.musicOn, "Music")}</div>
     <div class="setrow"><div class="grow"><b>Sound effects</b><div class="small">Taps, returns, loot and claims</div></div>${swBtn("swSfx", "swSfx", AUD.sfxOn, "Sound effects")}</div>
+    <div class="setrow"><div class="grow"><b>Notifications</b><div class="small">${PUSH.note()}</div></div>${swBtn("swPush", "swPush", PUSH.on(), "Notifications")}</div>
     <p class="small setnote">Saved on this phone. ${BUILD}</p>`, "settings");
   const b = $("#sheet .box"); if (b) b.classList.add("parch");
 }
@@ -2674,7 +2768,7 @@ function wbWeek(t) { // local calendar: DST-safe because every edge is built fro
   const mid = new Date(Y, M, D).getTime(), st = new Date(Y, M, D, 1, 0, 0, 0).getTime(), end = new Date(Y, M, D + 7).getTime();
   return { mid, st, end, wk: dIdx(mid), gap: t < st };
 }
-const wbOpen = () => S.b.hall >= 2; // section 33: campaign chapter 1 or Hall 2; the campaign isn't built yet
+const wbOpen = () => S.b.hall >= 2 || !!(S.camp && S.camp.clr && S.camp.clr.cp5); // section 33: campaign chapter 1 or Hall 2
 const wbLive = t => !!(S.boss && !S.boss.over && t >= S.boss.st && t < S.boss.end);
 function wbTarget() { const B = S.boss || { ri: 0 }; const L = WB_LIST[B.ri || 0]; return { id: "boss", boss: true, name: L.name, ic: L.ic, base: WB_BASE, fixJob: WB_JOB, need: 1, gold: 0, xp: 0, wpn: null, pot: 0, x: WB_X, y: WB_Y }; }
 // H (DESIGN 35, Delta Oct 9 9:26 PM): the town's real trip income. Every run and pin adds its base gold (before the +-20% roll
@@ -2784,7 +2878,7 @@ function renderTown(t) {
   for (const b of Object.keys(BLD)) {
     const L = S.b[b], ready = upReady(t) && S.up.b === b;
     h += `<div class="card" data-bcard="${b}"><div class="row bld"><span style="position:relative;display:block" data-act="bld" data-b="${b}">${bldSVG(b, L)}${ready ? `<span class="badge ham bnc">${IC.hammer}</span>` : ""}</span><div class="grow"><h3>${BLD[b]} <span class="small">Lv ${L}</span></h3><div class="small">${bldInfo(b)}</div></div></div><div style="margin-top:8px">${upgBlock(b, t)}</div>`;
-    if (b === "hall") h += `<div class="btns">${recBtn()}<button class="alt" data-act="colOpen">📖 Collections${colN() >= 10 ? ` · ${"🏅".repeat(Math.min(5, Math.floor(colN() / 10)))}${colN() >= 60 ? "+" : ""}` : ""}</button><button class="alt" data-act="copyCode">Copy save code</button><button class="alt" data-act="pasteCode">Paste save code</button><button class="alt" data-act="tipsReset">Show tips again</button></div><div class="small" id="lastBackup" style="margin-top:6px">Last backup: ${backupAgo(t)}</div>`;
+    if (b === "hall") h += `<div class="btns">${recBtn()}<button class="alt" data-act="cpOpen" id="cpBtn">🗺️ Campaign</button><button class="alt" data-act="colOpen">📖 Collections${colN() >= 10 ? ` · ${"🏅".repeat(Math.min(5, Math.floor(colN() / 10)))}${colN() >= 60 ? "+" : ""}` : ""}</button><button class="alt" data-act="copyCode">Copy save code</button><button class="alt" data-act="pasteCode">Paste save code</button><button class="alt" data-act="tipsReset">Show tips again</button></div><div class="small" id="lastBackup" style="margin-top:6px">Last backup: ${backupAgo(t)}</div>`;
     if (b === "infirmary") koList(t).forEach(x => h += `<div class="list-item" style="flex-wrap:wrap"><span class="chip" style="box-shadow:none"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)}</span><b data-cend="${x.koEnd}">${fmtCL(x.koEnd - t)}</b><div style="width:100%">${healBtns(x, t)}</div></div>`);
     h += `</div>`;
   }
@@ -3099,7 +3193,7 @@ const GOB_HEAD = paint(`<svg class="ghs" viewBox="-17 -16 34 30" aria-hidden="tr
 // walking route from the village square to an entrance, sampled by arc length
 function route(tid) {
   if (SC.routes[tid]) return SC.routes[tid];
-  let P = tid === "boss" ? SC.G.paths.hollow.slice(0, -1).concat([[SC.X(WB_X), SC.Y(WB_Y)]]) : SC.G.paths[tid];
+  let P = tid === "boss" ? SC.G.paths.hollow.slice(0, -1).concat([[SC.X(WB_X), SC.Y(WB_Y)]]) : CPM[tid] ? SC.G.paths[CPM[tid].via] : SC.G.paths[tid]; // rc6.4: a mission walks the road of its chapter's area
   if (!P) { const pin = S.pins.find(p => p.id === tid); if (!pin) return null; P = SC.G.trails[pin.spot]; }
   const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
   el.setAttribute("d", crPath(P)); $("#routes").appendChild(el);
@@ -3226,7 +3320,7 @@ function mapSync(t) {
     const ready = upReady(t) && S.up.b === b, going = S.up && S.up.b === b && !ready;
     const badge = ready ? "ham" : going ? "clock" : b === "bank" && bankHas() ? "coin" : b === "infirmary" && S.heroes.some(h => canHeal(h, t)) ? "cross" : "";
     if (WORK[b] && !S.b[b] && S.b.hall < WORK[b].unlock) { if (SC.bl[b]) { SC.bl[b].el.remove(); delete SC.bl[b]; } continue; } // a locked plot isn't shown
-    const vv = vAt(b), key = `${S.b[b]}|${badge}|${vv ? vLvl(vv) : 0}`; let o = SC.bl[b];
+    const vv = vAt(b), key = `${S.b[b]}|${badge}|${vv ? vLvl(vv) : 0}|${b === "hall" && S.camp && S.camp.crown ? "c" : ""}`; let o = SC.bl[b];
     if (!o) { const el = document.createElement("button"); el.className = "bldm"; el.dataset.act = "bld"; el.dataset.b = b; el.id = "bl-" + b; lyB.appendChild(el); o = SC.bl[b] = { el, key: "" }; }
     if (o.key !== key) {
       o.key = key; const [x, y] = SC.G.V(VIL.b[b]), L = S.b[b], ex = bldEx(L), bw = 120 * k, bh = 90 * k * (90 + ex) / 90; // rc6.3: 120 px wide (about 2x), a storey per level (level 5 is 2x as tall)
@@ -3278,7 +3372,7 @@ function mapSync(t) {
     let b = SC.bub[p.id];
     if (!b) {
       const el = document.createElement("div"); el.className = "bub tbub"; el.id = "bub-" + p.tid;
-      const a = TGM[p.tid] ? ART[p.tid] : PIN_ART;
+      const a = TGM[p.tid] ? ART[p.tid] : CPM[p.tid] ? ART[CPM[p.tid].via] : PIN_ART;
       el.style.left = X(tg.x) + "px"; el.style.top = (Y(tg.y) - a.ey * k - 2) + "px"; el.style.zIndex = 300;
       el.innerHTML = mem.map(faceChip).join("") + `<span class="pic"></span><span data-end="${p.end}">${fmt(p.end - t)}</span>`;
       lyU.appendChild(el); b = SC.bub[p.id] = { el, ph: "", cx: X(tg.x) };
@@ -3344,6 +3438,53 @@ document.addEventListener("visibilitychange", () => { document.documentElement.c
 window.addEventListener("pagehide", () => save());
 let rsT = 0; window.addEventListener("resize", () => { placeVP(); clearTimeout(rsT); rsT = setTimeout(() => { if (TAB === "map" && SC) { const d = sceneDims(), v = vpEl(); placeVP(); if (d.W !== SC.W) { const fx = v ? (v.scrollLeft + v.clientWidth / 2) / SC.W : .5, fy = v ? (v.scrollTop + v.clientHeight / 2) / SC.H : .5; SC = null; render(); camOn(fx * SC.W, fy * SC.H, 0); } } }, 200); });
 // host badge clearance (DESIGN 15): only in a browser tab, never when installed
+// ---------- rc6.4.1: "heroes are home" push notifications (Web Push via the afk-town-push Worker) ----------
+// Off until the player turns it on in Settings. The Worker only learns a push subscription plus, per party out, its id, real end
+// time and the line to show. The private VAPID key lives only in the Worker. Every push shows a notification (sw.js).
+const PUSH_URL = "https://afk-town-push.afktown.workers.dev", VAPID_PUB = "BIzDTRli9rQ3ziMfxQ8a7ntxVYw096KqPIQH2dPxtRIShWqIb5-J45ofUW9bOAUcKnJp9BjMhAg0H7B1RDktu_o", PUSH_KEY = "afktown.push";
+var PUSH = (() => { // var: save() may run before this line during start-up
+  const ios = /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const ok = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  const st = () => { try { return JSON.parse(localStorage.getItem(PUSH_KEY) || "{}"); } catch (e) { return {}; } };
+  const put = o => { try { localStorage.setItem(PUSH_KEY, JSON.stringify(o)); } catch (e) { } };
+  const u8 = b => { b = b.replace(/-/g, "+").replace(/_/g, "/"); while (b.length % 4) b += "="; return Uint8Array.from(atob(b), c => c.charCodeAt(0)); };
+  let sub = null, sent = {}, sig = "", busyP = null, pend = false;
+  const on = () => !!st().on && ok() && Notification.permission === "granted";
+  const post = (path, d) => fetch(PUSH_URL + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d), keepalive: true }).then(r => r.ok, () => false);
+  const jobs = () => { const off = (S && S.offset) || 0, t = Date.now(); return (S ? S.parties : []).filter(p => p.end - off > t + 5e3).map(p => {
+    const tg = tgOf(p.tid), names = p.members.map(hero).filter(Boolean).map(h => h.name);
+    return { id: "p" + p.id, at: Math.round(p.end - off), title: "AFK Town", body: `${whoTxt(names)} ${names.length === 1 ? "is" : "are"} home from ${tg ? tg.name : "their trip"}!` }; }).slice(0, 50); };
+  async function getSub(make) {
+    const reg = await navigator.serviceWorker.ready; let s0 = await reg.pushManager.getSubscription();
+    if (!s0 && make) s0 = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: u8(VAPID_PUB) });
+    return s0 ? JSON.parse(JSON.stringify(s0)) : null;
+  }
+  async function sync() { // the full list: also clears parties that are gone (recalled, finished early)
+    if (!on()) return; if (!S) { pend = true; return; } pend = false; try { sub = sub || await getSub(true); if (!sub) return; const J = jobs(); if (await post("/sync", { sub, jobs: J })) { sent = Object.fromEntries(J.map(j => [j.id, j.at])); sig = J.map(j => j.id + ":" + j.at).join(","); } } catch (e) { }
+  }
+  function tick() { // after each save: schedule new parties, cancel ones that left early
+    if (pend && S) { sync(); return; } if (!on() || !sub) return; const J = jobs(), k = J.map(j => j.id + ":" + j.at).join(","); if (k === sig) return; sig = k;
+    const now = Object.fromEntries(J.map(j => [j.id, j.at]));
+    for (const j of J) if (sent[j.id] !== j.at) post("/schedule", { sub, ...j });
+    for (const id of Object.keys(sent)) if (!(id in now)) post("/cancel", { sub, id });
+    sent = now;
+  }
+  async function toggle() {
+    if (busyP) return busyP;
+    return busyP = (async () => {
+      try {
+        if (st().on) { const s0 = sub || await getSub(false).catch(() => null); if (s0) await post("/sync", { sub: s0, jobs: [] }); try { const reg = await navigator.serviceWorker.ready, x = await reg.pushManager.getSubscription(); if (x) await x.unsubscribe(); } catch (e) { } sub = null; sent = {}; sig = ""; put({}); toast("Notifications off."); return; }
+        if (ios && !STANDALONE) { toast("Add to Home Screen first (Share, then Add to Home Screen)."); return; }
+        if (!ok()) { toast("This browser can't show notifications."); return; }
+        const pm = await Notification.requestPermission(); if (pm !== "granted") { toast("Notifications are blocked in this phone's settings."); return; }
+        sub = await getSub(true); if (!sub) { toast("Couldn't turn on notifications."); return; }
+        put({ on: 1 }); sig = ""; await sync(); toast("Notifications on. We'll tell you when heroes are home.");
+      } catch (e) { toast("Couldn't turn on notifications."); } finally { busyP = null; }
+    })();
+  }
+  const note = () => ios && !STANDALONE ? "Add to Home Screen first (Share, then Add to Home Screen)" : !ok() ? "Not available in this browser" : typeof Notification !== "undefined" && Notification.permission === "denied" ? "Blocked in this phone's settings" : "Tells you when heroes are home, even with the game closed";
+  return { on, toggle, sync, tick, note, jobs };
+})();
 const STANDALONE = (window.matchMedia && (matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches)) || navigator.standalone === true;
 document.documentElement.classList.toggle("tab", !STANDALONE);
 // host pill clearance (DESIGN 15): Netlify's "Powered by Netlify" pill (192x64, bottom right) shows in a tab AND from the
@@ -3444,9 +3585,9 @@ bootCheck();
 // offline copy (DESIGN 16): sw.js keeps index.html, manifest, icons and version.json; network first for the page and version.json.
 // On a plain http address (not localhost) it can't register, and the game runs online as normal with no error.
 if ("serviceWorker" in navigator && window.isSecureContext && !(TEST && QS.has("nosw"))) {
-  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => { }); });
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(() => PUSH.sync()).catch(() => { }); });
 }
-window.TOWN = TEST ? { v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
+window.TOWN = TEST ? { PUSH,  v64: { wbOpen, cpCan, cpWinnable, cpTarget, CP, CPM, CP_CH, cpOpen, cpNext, cpGold, cpTier, cpRuleWhy, cpCleared }, v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
 </script>
 </body>
 </html>
