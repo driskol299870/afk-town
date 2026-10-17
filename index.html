@@ -138,7 +138,7 @@ nav .tdot{position:absolute;top:6px;left:calc(50% + 10px);width:12px;height:12px
 .nail{width:10px;height:10px;border-radius:50%;border:2px solid var(--ink);background:#d9cfc0;opacity:.35}.nail.on{opacity:1;background:#6e6e6e}
 .garden{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:12px 6px;background:linear-gradient(#cfe9b0,#9b7448 70%);border:2px solid var(--ink);border-radius:12px}
 .plant{position:relative;height:84px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;touch-action:none}
-.plant .pl{font-size:38px;transition:transform .3s}.plant.hold .pl{transform:scale(1.08)}.plant.up .pl{transform:translateY(-4px)}
+.plant .pl{font-size:38px;transition:transform .3s}.plant .drops{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);display:flex;gap:3px}.plant .drops i{width:8px;height:10px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#fff;border:1.5px solid #2b6fb0;display:block}.plant .drops i.on{background:#4aa3ff}.plant.tap .pl{animation:wtap .25s ease-out}@keyframes wtap{0%{transform:scale(1)}40%{transform:scale(1.15) rotate(-4deg)}100%{transform:scale(1)}}@media (prefers-reduced-motion: reduce){.plant.tap .pl{animation:none}}.plant.hold .pl{transform:scale(1.08)}.plant.up .pl{transform:translateY(-4px)}
 .plant .ring{position:absolute;inset:6px;border-radius:50%;background:conic-gradient(#4aa3ff calc(var(--p)*360deg),transparent 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 6px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 6px),#000 0);pointer-events:none}
 .shelves{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
 .shelf{height:64px;border:2px solid var(--ink);border-radius:10px;background:linear-gradient(#e0b47a,#b98450);display:flex;align-items:center;justify-content:center;gap:6px;font-weight:900;cursor:pointer}
@@ -165,6 +165,19 @@ nav .tdot{position:absolute;top:6px;left:calc(50% + 10px);width:12px;height:12px
 .prc{margin:8px 0}
 #a2hs{position:fixed;inset:0;z-index:40;background:#3a2a1f;color:#fff;overflow:auto;padding:calc(24px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom))}
 #a2hs[hidden]{display:none}
+.trip{background:#fffdf5;border:2px solid var(--ink);border-radius:12px;padding:7px 9px;margin:0 0 7px;text-align:left}.trip .trh{gap:8px;align-items:center}.trip .tic{font-size:24px;line-height:1;flex:none}
+.trip .trw{flex:none;white-space:nowrap;align-self:flex-start}.trip .trl{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-weight:800;margin-top:4px}.trip .trl .ic{vertical-align:-3px}
+.trip.big .tic{font-size:34px}.trip.big .trl{font-size:18px}.trhd{margin:10px 0 6px}
+#march{position:fixed;right:6px;top:50%;z-index:7;width:54px;min-height:0;height:auto;padding:5px 2px 4px;border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:1px;background:rgba(255,247,194,.86);border:2.5px solid var(--ink);box-shadow:0 3px 0 rgba(43,33,24,.75);font-size:10px;font-weight:900;line-height:1.1;color:var(--ink)}
+#march[hidden]{display:none}#march .mi{display:block;line-height:0}#march .mi svg{width:26px;height:26px}
+#march .mb{position:absolute;top:-8px;left:-8px;min-width:20px;height:20px;border-radius:10px;background:#c0392b;color:#fff;border:2px solid var(--ink);font-size:11px;line-height:16px;text-align:center;padding:0 3px;box-sizing:border-box}
+#march .mt{font-variant-numeric:tabular-nums;white-space:nowrap}#march.tight{padding:4px 2px}#march.tight .mt{display:none}
+body:has(#sheet:not([hidden])) #march,body:has(#a2hs:not([hidden])) #march,body:has(#boot:not([hidden])) #march{display:none}
+.mrow{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 8px;margin:0 0 6px;min-height:48px;background:#fffdf5;border:2px solid var(--ink);border-radius:12px;box-shadow:0 2px 0 var(--ink);font-weight:700;color:var(--ink)}
+.mrow .mic{font-size:22px;line-height:1;flex:none;width:28px;text-align:center}.mrow .grow{min-width:0}.mrow .mn{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow .ms{display:block;font-size:12px;font-weight:700;opacity:.85}.mrow .mtot{flex:none;text-align:right;font-size:12px;line-height:1.25;font-variant-numeric:tabular-nums}
+.mbox h3{margin:0 0 8px}.mbox h4{margin:10px 0 6px;font-size:14px}
+.npask{text-align:center}.npask .npic{font-size:40px;line-height:1;margin:4px 0 6px}.npask h3{margin:0 0 6px}.npask .npbtns{gap:10px;justify-content:center;margin-top:12px}.npask .npbtns button{flex:1 1 0;min-height:48px;max-width:200px}
 #a2hs .inner{max-width:460px;margin:0 auto}
 #a2hs .card{color:var(--ink)}
 #a2hs ol{margin:6px 0 0;padding-left:22px}#a2hs li{margin:4px 0}
@@ -456,7 +469,7 @@ html.clear #toast{bottom:176px}
 "use strict";
 const KEY = "afktown.save", MIN = 60e3, HR = 3600e3, SEC = 1e3;
 const TEST = /[?&]test(=|&|$)/.test(location.search);
-const BUILD = "rc6.4.1"; // the build tag on the Town screen; bump it each build
+const BUILD = "rc6.4.2"; // the build tag on the Town screen; bump it each build
 // ---------- sound and music (DESIGN 20, rc5.6): everything is made here in code with Web Audio. No files, no samples. ----------
 // rc5.8.2 (mark 69): music is on by default and fades in as the town shows; if the browser blocks audio it starts on the
 // first gesture of any kind (no prompt). Mute wins and lives in localStorage on this phone only (never in the save or the save code).
@@ -1029,19 +1042,36 @@ const bricks = (x, y, w, h, n) => { let s = ""; for (let i = 1; i < n; i++) { co
 const crenel = (x, y, w, n, c) => { let s = `<path d="M${x} ${y + 6}`; const u = w / (n * 2 - 1); for (let i = 0; i < n * 2 - 1; i++) s += i % 2 ? ` V${y + 6} h${u.toFixed(1)}` : ` V${y} h${u.toFixed(1)}`; return s + ` V${y + 6}Z" fill="${c}" ${O2}/>`; };
 const pennant = (x, y, c, cross) => `<path d="M${x} ${y + 16} V${y}" stroke="${INK}" stroke-width="2"/><path d="M${x} ${y} Q${x + 10} ${y - 2} ${x + 18} ${y + 3} Q${x + 10} ${y + 6} ${x} ${y + 8}Z" fill="${c}" ${O2}/>${cross ? `<path d="M${x + 7} ${y + 1.5} v5 M${x + 4.6} ${y + 4} h5" stroke="${GOLD}" stroke-width="1.6"/>` : ""}`;
 const tower = (x, y, w, h, roofH) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${STONE}" ${O3}/>${bricks(x, y, w, h, Math.round(h / 7))}<path d="M${x - 3} ${y + 1} L${x + w / 2} ${y - roofH} L${x + w + 3} ${y + 1}Z" fill="${ROOF}" ${O3}/><path d="M${x + w / 2 - 2} ${y - roofH + 6} L${x + 4} ${y - 1}" stroke="#e8846a" stroke-width="2" stroke-linecap="round"/><rect x="${x + w / 2 - 3}" y="${y + 10}" width="6" height="9" rx="3" fill="#3a3040" ${O2}/>`;
+// rc6.4.2 (art polish): the Hall is one castle: a centred gatehouse with an arched door and portcullis, two matching towers with
+// red cone roofs, crenellations, a banner, curtain walls from level 2, hanging banners from 4, gold trim at 5, the crown on top.
+// Light from the upper left: a pale strip on each wall's left edge, a shade on the right; 3 px outlines like the other buildings.
+// ex = extra height above the level-1 box (bldTall); the castle simply grows taller, nothing floats.
+const LIT = (x, y, w, h) => `<rect x="${(x + 1.6).toFixed(1)}" y="${(y + 1.6).toFixed(1)}" width="3" height="${Math.max(0, h - 3.2).toFixed(1)}" fill="#ffffff" opacity=".28"/><rect x="${(x + w - 6.6).toFixed(1)}" y="${(y + 1.6).toFixed(1)}" width="5" height="${Math.max(0, h - 3.2).toFixed(1)}" fill="#000000" opacity=".12"/>`;
+function hallArt(L, ex) {
+  ex = ex || 0; const crown = !!(S && S.camp && S.camp.crown), n = Math.round(ex / 22.5);
+  const yt = 30 - ex, yg = 40 - ex, TW = 24, lx = 12, rx = 84, gx = 36, gw = 48; let s = "";
+  const slits = (x, w, y0) => { let o = ""; for (let y = y0; y <= 66; y += 20) o += `<rect x="${(x + w / 2 - 2.5).toFixed(1)}" y="${y.toFixed(1)}" width="5" height="10" rx="2.5" fill="#3a3040" ${O2}/>`; return o; };
+  const twr = (x, gold) => `<rect x="${x}" y="${yt}" width="${TW}" height="${84 - yt}" fill="${STONE}" ${O3}/>${bricks(x, yt, TW, 84 - yt, Math.max(3, Math.round((84 - yt) / 8)))}${LIT(x, yt, TW, 84 - yt)}${slits(x, TW, yt + 12)}`
+    + `<path d="M${x - 3} ${yt + 1} L${x + TW / 2} ${yt - 20} L${x + TW + 3} ${yt + 1}Z" fill="${ROOF}" ${O3}/><path d="M${x + TW / 2 - 2} ${yt - 14} L${x + 3} ${yt - 1}" stroke="#e8846a" stroke-width="2" stroke-linecap="round"/>`
+    + (gold ? `<path d="M${x - 3} ${yt + 1} L${x + TW / 2} ${yt - 20} L${x + TW + 3} ${yt + 1}" fill="none" stroke="${GOLD}" stroke-width="2.4" stroke-linejoin="round"/>` : "")
+    + `<path d="M${x - 4} ${yt + 1} H${x + TW + 4}" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`;
+  // curtain walls (level 2+), behind the towers so they join them
+  if (L >= 2) for (const [x, w] of [[2, 12], [106, 12]]) s += `<rect x="${x}" y="64" width="${w}" height="20" fill="${STONE2}" ${O2}/>` + crenel(x - 1, 58, w + 2, 2, STONE2) + `<rect x="${x + w / 2 - 2}" y="69" width="4" height="7" rx="2" fill="#3a3040"/>`;
+  // gatehouse
+  s += `<rect x="${gx}" y="${yg}" width="${gw}" height="${84 - yg}" fill="${STONE}" ${O3}/>${bricks(gx, yg, gw, 84 - yg, Math.max(4, Math.round((84 - yg) / 8)))}${LIT(gx, yg, gw, 84 - yg)}` + crenel(gx - 2, yg - 6, gw + 4, 5, STONE);
+  for (let i = 0; i <= n; i++) { const wy = 46 - ex + i * 22.5; if (wy + 10 > 58) break; s += `<rect x="${gx + 8}" y="${wy}" width="7" height="10" rx="3.5" fill="#3a3040" ${O2}/><rect x="${gx + gw - 15}" y="${wy}" width="7" height="10" rx="3.5" fill="#3a3040" ${O2}/>`; }
+  s += `<path d="M50 84 V66 Q60 56 70 66 V84Z" fill="#7a4a2a" ${O3}/><path d="M55 64 V84 M60 61 V84 M65 64 V84 M51 71 H69 M51 78 H69" stroke="#4a4a50" stroke-width="1.6" opacity=".75"/><path d="M48 84 V65 Q60 52 72 65 V84" fill="none" stroke="${STONE2}" stroke-width="3"/>`;
+  if (L >= 4) s += `<path d="M${gx + 3} ${yg + 4} h8 v16 l-4 -3 -4 3z M${gx + gw - 11} ${yg + 4} h8 v16 l-4 -3 -4 3z" fill="${BLUE}" ${O2}/><path d="M${gx + 7} ${yg + 8} v6 M${gx + 4.6} ${yg + 10.5} h4.8 M${gx + gw - 7} ${yg + 8} v6 M${gx + gw - 9.4} ${yg + 10.5} h4.8" stroke="${GOLD}" stroke-width="1.5"/>`;
+  s += twr(lx, L >= 5) + twr(rx, L >= 5);
+  if (L >= 3) s += pennant(lx + TW / 2, yt - 31, BLUE, 1) + pennant(rx + TW / 2, yt - 31, BLUE, 1);
+  if (crown) s += `<g class="crown" transform="translate(46 ${yg - 30})"><path d="M2 18 L0 4 L8 10 L14 0 L20 10 L28 4 L26 18 Z" fill="#ffcc33" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><circle cx="14" cy="12" r="2.4" fill="#e2463a"/></g>`; // rc6.4: the Elder Dragon's gold crown
+  else s += `<path d="M60 ${yg - 6} V${yg - 26}" stroke="${INK}" stroke-width="2.2"/><path d="M60 ${yg - 26} Q70 ${yg - 28} 78 ${yg - 23} Q70 ${yg - 18} 60 ${yg - 17}Z" fill="${L >= 5 ? GOLD : ROOF}" ${O2}/>`;
+  s += `<rect x="8" y="81" width="104" height="4" rx="1.5" fill="${STONE2}" ${O2}/>`; // one plinth under it all
+  return s;
+}
 function bldSVG(b, L, cls) {
   let s = `<svg ${cls ? `class="${cls}" ` : ""}viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">${SHADOW(60, 84, 58, 7)}<path d="M8 86 Q60 78 112 86" fill="none" stroke="#5f9a3a" stroke-width="3" stroke-linecap="round"/>`;
-  if (b === "hall") {
-    if (S && S.camp && S.camp.crown) s += `<g class="crown" transform="translate(46 2)"><path d="M2 18 L0 4 L8 10 L14 0 L20 10 L28 4 L26 18 Z" fill="#ffcc33" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><circle cx="14" cy="12" r="2.4" fill="#e2463a"/></g>`; // rc6.4: the Elder Dragon's gold crown (map, Hall sheet and Town card)
-    if (L >= 3) s += tower(86, 42, 18, 40, 18) + pennant(95, 10, BLUE, 1);
-    s += tower(16, 34, 22, 48, 20) + pennant(27, 0, BLUE, 1);
-    s += `<rect x="36" y="36" width="50" height="46" fill="${STONE}" ${O3}/>${bricks(36, 36, 50, 46, 6)}` + crenel(34, 30, 54, 5, STONE);
-    s += `<path d="M52 82 V64 Q61 54 70 64 V82Z" fill="#7a4a2a" ${O3}/><path d="M57 64 V82 M65 64 V82" stroke="${INK}" stroke-width="1.2" opacity=".5"/><path d="M52 72 H70" stroke="#4a4a50" stroke-width="2"/>`;
-    s += `<rect x="44" y="44" width="6" height="9" rx="3" fill="#3a3040" ${O2}/><rect x="72" y="44" width="6" height="9" rx="3" fill="#3a3040" ${O2}/>`;
-    if (L >= 4) s += `<path d="M40 54 h8 v14 l-4 -3 -4 3z M74 54 h8 v14 l-4 -3 -4 3z" fill="${BLUE}" ${O2}/><path d="M44 57 v6 M41.6 59.5 h4.8 M78 57 v6 M75.6 59.5 h4.8" stroke="${GOLD}" stroke-width="1.5"/>`;
-    if (L >= 5) s += `<path d="M54 30 L61 6 L68 30Z" fill="${ROOF}" ${O3}/><path d="M58.5 15 L61 6 L63.5 15Z" fill="${GOLD}" ${O2}/><circle cx="61" cy="5" r="2.6" fill="${GOLD}" ${O2}/>`;
-    if (L >= 2) s += crenel(4, 68, 40, 4, STONE2) + `<rect x="4" y="74" width="40" height="10" fill="${STONE2}" ${O2}/>` + crenel(78, 68, 40, 4, STONE2) + `<rect x="78" y="74" width="40" height="10" fill="${STONE2}" ${O2}/>`;
-  }
+  if (b === "hall") s += hallArt(L, 0);
   if (b === "shop") {
     const two = L >= 2, top = two ? 32 : 46;
     s += `<rect x="24" y="${top}" width="70" height="${82 - top}" fill="#f2e2bf" ${O3}/>`;
@@ -1104,7 +1134,8 @@ const brows = (x1, x2, y) => `<path d="M${x1 - 4} ${y - 3} L${x1 + 3} ${y}M${x2 
 const ART = {
   rat: { w: 96, h: 76, ex: 66, ey: 66, s: `
     <path d="M10 70 Q48 60 90 70 L90 74 L10 74Z" fill="#7cc35a"/>
-    <rect x="12" y="32" width="54" height="38" rx="3" fill="#f4d29c" ${OK}/>
+    <rect x="12" y="32" width="54" height="38" rx="3" fill="#f4d29c" ${OK}/>${LIT(12, 32, 54, 38)}<path d="M14 67 H64" stroke="#c9a46e" stroke-width="3"/>
+    <rect x="50" y="10" width="8" height="16" fill="#9a9ba1" ${OK}/>
     <path d="M6 35 L39 8 L72 35Z" fill="#e5484d" ${OK}/><path d="M18 26 L39 9 L60 26" fill="none" stroke="#b8323a" stroke-width="2"/>
     <rect x="20" y="42" width="12" height="11" rx="2" fill="#bfe3ff" ${OK}/><path d="M26 42v11M20 47.5h12" stroke="#3a2a1f" stroke-width="1.6"/>
     <path d="M40 70 V52 Q47 45 54 52 V70Z" fill="#8a5a3b" ${OK}/>
@@ -1242,7 +1273,7 @@ function makeHero(s, cls, seed, name) {
 function newSave() {
   const t = Date.now();
   const s = { version: 1, created: t, offset: 0, gold: 200, potions: 2, rations: 0, weapons: [], heroes: [], parties: [], gate: [],
-    b: { hall: 1, shop: 1, bank: 1, infirmary: 1 }, up: null, bank: { gold: 0, potions: 0, rations: 0, weapons: [] }, lastCollect: t,
+    b: { hall: 1, shop: 1, bank: 1, infirmary: 1 }, ups: [], bank: { gold: 0, potions: 0, rations: 0, weapons: [] }, lastCollect: t,
     paid: 0, offers: null, freeDay: "", failNext: false, stats: 1, cw: 1, tip: true, events: [], nextId: 1, lastBackup: 0, nudgeOff: 0, pins: [], pinClock: t, bv: 1, boss: null, inc: [], dv: 1, daily: { n: 1, last: null, got: 0 }, chores: { list: [], clock: t } };
   // starting pair: a Warrior and an Archer (class build, DESIGN 6 and 9)
   const pair = Math.random() < .5 ? ["warrior", "archer"] : ["archer", "warrior"];
@@ -1256,6 +1287,7 @@ function newSave() {
 // older saves (rc1 to rc3) upgrade in place: split parties into walk/job/walk, add pins and the bank's ration slot
 function migrate(s) {
   if (!s) return s;
+  upNorm(s); // rc6.4.2
   if (!s.bank.rations) s.bank.rations = 0;
   if (!Array.isArray(s.pins)) { s.pins = []; s.pinClock = Date.now() + (s.offset || 0); spawnPin(s); spawnPin(s); }
   if (!s.pinClock) s.pinClock = Date.now() + (s.offset || 0);
@@ -1339,7 +1371,16 @@ const busy = tid => S.parties.some(p => p.tid === tid);
 const capMs = () => (24 + S.b.hall - 1) * HR + PR_CAP * prN();
 const recovMs = () => Math.round(REC_H[S.b.infirmary - 1] * HR * (1 - .03 * vLvlAt("infirmary"))); // rc6.3 (34): a healer villager cuts 3% per villager level
 const carries = (h, k) => h.supply && h.supply.k === k && h.supply.n > 0;
-const upReady = t => !!(S.up && S.up.end <= t);
+// rc6.4.2: several buildings can upgrade at once (one upgrade per building). S.ups = [{ b, start, end }]: each has its own fixed
+// end (forward-only, never shortened by gold) and its own push. Older saves' single S.up becomes a one-item list (upNorm).
+function upNorm(s) {
+  s = s || S; if (!s) return s; const L = Array.isArray(s.ups) ? s.ups.slice() : []; if (s.up) L.push(s.up); delete s.up;
+  const seen = new Set(); s.ups = L.filter(u => u && BLD[u.b] && Number.isFinite(+u.start) && Number.isFinite(+u.end) && +u.end >= +u.start && ((s.b && s.b[u.b]) || 0) < 5 && !seen.has(u.b) && seen.add(u.b)); // one per building, real ones only
+  return s;
+}
+const upOf = b => (S.ups || []).find(u => u.b === b) || null;
+const upReadyB = (b, t) => { const u = upOf(b); return !!(u && u.end <= t); };
+const upReady = t => (S.ups || []).some(u => u.end <= t);
 // power = 10 + 5 x equipped class rank + weapon + the hero's own power edge (DESIGN 4 and 6)
 const EDGE_PW = { warrior: 5, knight: 3 };
 const basePow = h => 10 + 5 * h.lvl + (h.weapon ? TIERS[h.weapon].bonus : 0);
@@ -1383,18 +1424,20 @@ function failChance(mem, tg) {
 // 30 days after going live). One line to extend or end it. The phone's clock decides. Healing, upgrades, bank cap, goblins: not halved.
 const FAST_TRAVEL_END = Date.UTC(2026, 10, 9, 8, 0, 0);
 const fastOn = () => true; // rc6.2.2 (Kurtis, Oct 16): half-time trips are permanent and always pay in full; parties already out keep the pay they were sent with
+const JOB_Q = .5, JOB_CAP = 1800; // rc6.4.2: dungeon/job phase x0.5 on top of half time; cap 30 min (seconds)
 function runParts(mem, tg, t) {
   const f = fastOn(t === undefined ? now() : t) ? .5 : 1; // halved after everything (off-class minute too), walks capped at 5 min, the job at 1 h (DESIGN 27)
   const n = Math.max(1, Math.min(MAXP, mem.length)), base = tg.base / SEC;
   let w = .1 * base * (1 + .1 * (n - 1)) * (1 - avgOf(mem, vigOf) / 100), j = .8 * base * JOB[n - 1] * (1 - .03 * avgOf(mem, skillOf));
   const offN = tg.fixJob ? 0 : mem.filter(offClass).length;
   j = tg.fixJob ? tg.fixJob / SEC : j + offN * 60;
-  if (f !== 1) { w = Math.min(w * f, 300); if (!tg.fixJob) j = Math.min(j * f, 3600); } // job cap 1 h (mark 75); the boss job stays 1 h
+  if (f !== 1) { w = Math.min(w * f, 300); if (!tg.fixJob) j = j * f; } // walks: half time, cap 5 min (mark 75); the boss job stays 1 h
+  if (!tg.fixJob) j = Math.max(1, Math.min(j * JOB_Q, JOB_CAP)); // rc6.4.2 (PERMANENT): the dungeon/job phase is halved again (quarter time) at full pay; job cap 30 min
   // rc6.2.1 (DESIGN 39): a Ration cuts both walks by 25%, a Potion cuts the job by 10%, each last (after fast travel and the caps); the boss uses no items
   const rat = !tg.boss && !tg.fixJob && mem.some(h => carries(h, "ration")), pot = !tg.boss && !tg.fixJob && mem.some(h => carries(h, "potion"));
   const w0 = Math.round(w) * SEC, j0 = Math.round(j) * SEC;
   if (rat) w *= .75; if (pot) j *= .9;
-  w = Math.round(w) * SEC; j = Math.round(j) * SEC;
+  w = Math.round(w) * SEC; j = Math.max(1, Math.round(j)) * SEC; // a Potion never takes the job to zero
   const o = { w, j, total: w + j + w, w0, j0, rat, pot }; if (f !== 1) o.fast = true; return o;
 }
 // pay while fast travel is on (DESIGN 27): gold and the weapon/Potion drop chances x fast time / normal time for this exact party; XP stays full
@@ -1430,6 +1473,7 @@ function ret(p) {
   if (p.tid === "boss") return wbRet(p);
   const T = p.end, tg = tgOf(p.tid) || { name: "?", ic: "❔", gold: 0, xp: 0, wpn: null, pot: 0, pin: true }, mem = p.members.map(hero).filter(Boolean);
   S.parties.splice(S.parties.indexOf(p), 1);
+  const bty0 = btySnap(); // rc6.4.2: what this trip moved on the bounty board, for its report
   let failed = Math.random() < p.fail;
   if (S.failNext) { failed = true; S.failNext = false; }
   const full = T > S.lastCollect + capMs();
@@ -1467,12 +1511,14 @@ function ret(p) {
   if (tg.pin) S.pins = S.pins.filter(x => x.id !== p.tid); // a pin is a one-time target
   // no Repeat: every trip ends with the party waiting at the gate
   if (ids.length || full) S.gate.push({ tid: p.tid, name: tg.name, ic: tg.ic, members: ids, reason: full ? "Bank full" : failed ? (ev.shook ? "Run failed" : "Knocked out") : "Back home", loot: full ? to : null, T });
+  ev.bty = btyDiff(bty0); ev.tl = tlogAdd(ev); // rc6.4.2: the trip log copies exactly what was credited above
   ev.live = LIVE && !document.hidden; S.events.push(ev); AUD.ret(ev); if (ev.live) BN.ret(ev);
   if (S.events.length > 400) S.events.splice(0, S.events.length - 400);
 }
 // replays everything that ended while the app was closed, in time order.
 // A finished upgrade waits for a tap on its building (section 19), so it is not applied here.
 function process(t) {
+  if (S && (S.up !== undefined || !Array.isArray(S.ups))) upNorm(S); // rc6.4.2: an old single upgrade (or a test setting S.up)
   gobSync(t); choreSync(t); townSync(t);
   let n = 0;
   for (const p of S.parties) if (p.outEnd <= t && !ARR.has(p.id)) { ARR.add(p.id); if (LIVE && !document.hidden) BN.arrived(p); }
@@ -1511,7 +1557,7 @@ function equipNeed(h) {
 function jobs(t) {
   const J = [];
   if (bankHas()) J.push({ k: "coin" });
-  if (upReady(t)) J.push({ k: "hammer", b: S.up.b });
+  if (upReady(t)) J.push({ k: "hammer", b: S.ups.filter(u => u.end <= t).sort((a, c) => a.end - c.end)[0].b });
   const heal = S.heroes.filter(h => canHeal(h, t)); if (heal.length) J.push({ k: "cross", h: heal[0].id, n: heal.length });
   S.pins.filter(p => !busy(p.id)).forEach(p => J.push({ k: "pin", p: p.id }));
   const eq = S.heroes.filter(h => equipNeed(h)); if (eq.length) J.push({ k: "sword", h: eq[0].id, n: eq.length });
@@ -1707,18 +1753,18 @@ const A = {
   },
   upg(d) {
     const t = now(); process(t); const b = d.b, L = S.b[b];
-    if (L >= 5 || S.up) return toast("Builders busy.");
+    if (L >= 5) return toast("Max level."); if (upOf(b)) return toast("Already upgrading."); // rc6.4.2: one upgrade per building, many buildings at once
     if (b !== "hall" && L >= S.b.hall) return toast("Upgrade the hall first.");
     if (!L && (!WORK[b] || S.b.hall < WORK[b].unlock)) return toast("Upgrade the hall first.");
     const c = upCost(b, L); if (S.gold < c) return toast("Not enough gold.");
-    S.gold -= c; S.up = { b, start: t, end: t + upTime(b, L) }; save(); render(); reopen();
+    S.gold -= c; S.ups.push({ b, start: t, end: t + upTime(b, L) }); save(); render(); reopen();
   },
   // a finished upgrade applies only when its building is tapped
   finish(d) {
-    const t = now(); if (!upReady(t) || (d.b && S.up.b !== d.b)) return;
-    const b = S.up.b; S.b[b]++; S.up = null; save(); render(); openBld(b); sparkle(b); toast(S.b[b] === 1 && WORK[b] ? `The ${BLD[b].toLowerCase()} is built!` : `${BLD[b]} is now level ${S.b[b]}!`);
+    const t = now(), u = d.b ? upOf(d.b) : S.ups.filter(x => x.end <= t).sort((a, c) => a.end - c.end)[0]; if (!u || u.end > t) return;
+    const b = u.b; S.b[b]++; S.ups = S.ups.filter(x => x !== u); save(); render(); openBld(b); sparkle(b); toast(S.b[b] === 1 && WORK[b] ? `The ${BLD[b].toLowerCase()} is built!` : `${BLD[b]} is now level ${S.b[b]}!`);
   },
-  bld(d) { const t = now(); if (upReady(t) && S.up.b === d.b) return A.finish(d); openBld(d.b); },
+  bld(d) { const t = now(); if (upReadyB(d.b, t)) return A.finish(d); openBld(d.b); },
   job(d) {
     const k = d.k;
     if (k === "coin") openBld("bank");
@@ -1773,7 +1819,7 @@ const A = {
     const ta = $("#codeIn"); const s = decodeSave(ta ? ta.value : "");
     if (!s) return toast("That code doesn't look right.");
     if (!confirm("Replace the town on this phone with the pasted save?")) return;
-    S = migrate(s); mapSel = []; closeSheet(); process(now()); resetScene(); commit(); toast("Save loaded.");
+    S = upNorm(migrate(s)); mapSel = []; closeSheet(); process(now()); resetScene(); commit(); toast("Save loaded.");
   },
   heroOpen(d) { openPanel(+d.h); },
   statV() { }, statS() { }, statG() { },
@@ -1894,6 +1940,11 @@ const A = {
   swMusic() { AUD.setSw(!AUD.musicOn, AUD.sfxOn); openSettings(); render(); },
   swSfx() { AUD.setSw(AUD.musicOn, !AUD.sfxOn); openSettings(); render(); },
   swPush() { PUSH.toggle().then(() => { if (sheetKind === "settings") openSettings(); }); },
+  npYes() { closeSheet(); PUSH.enable().then(() => { if (sheetKind === "settings") openSettings(); }); }, // rc6.4.2: the one-time card
+  marOpen() { MAR.open(); },
+  tripsOpen() { openTrips(); }, // rc6.4.2: the Recent trips log // rc6.4.2: the march-times panel
+  marGo(d) { MAR.go(d); },
+  npNo() { closeSheet(); toast("You can turn notifications on any time in Settings."); },
   tipsReset() { TIP.reset(); toast("Tips are back on."); },
   tclaim() { if (!TEST) return; AUD.cue("claim", "test"); },
   tfail() { if (!TEST) return; S.failNext = !S.failNext; commit(); },
@@ -2097,7 +2148,7 @@ function openCol(pg) {
 
 // ---------- rc6.4 (DESIGN 32, 35): the story campaign ----------
 // 4 chapters x 5 missions, mission 5 a boss. Each mission is a one-time trip with a team rule, a Need and a set time (half time and the
-// 5-min walk / 1-h job caps apply, like every trip). A win's first clear pays once, keyed by mission id: gold = the larger of the table and
+// 5-min walk / 30-min job caps apply (rc6.4.2), like every trip). A win's first clear pays once, keyed by mission id: gold = the larger of the table and
 // hours x 1.5 x H (a boss: the larger of the table and 5 H), then the prestige bonus, then the cap at half the next Hall upgrade.
 // Trip gold is 0 (so nothing feeds H); XP is normal trip XP. A loss is a normal failure and can be retried. Cleared missions can't be replayed.
 const CP_CH = [
@@ -2296,6 +2347,9 @@ function btyRoll(t) {
   hist[dk] = { g: S.bty.g, bonus: S.bty.bonus };
 }
 function btyAdd(k) { if (!S.bty || !S.bty.g) return; for (const g of S.bty.g) if (g.k === k && g.c < BTY[k].n) g.c++; }
+// rc6.4.2: bounty progress for the trip report: a snapshot before, the goals that moved after
+const btySnap = () => S.bty && S.bty.g ? S.bty.g.map(g => g.c) : null;
+const btyDiff = b0 => { if (!b0 || !S.bty || !S.bty.g) return []; return S.bty.g.map((g, i) => g.c > (b0[i] || 0) && BTY[g.k] ? { txt: BTY[g.k].txt, c: g.c, n: BTY[g.k].n } : null).filter(Boolean); };
 const btyReady = () => S.bty && S.bty.g ? S.bty.g.filter(g => !g.got && g.c >= BTY[g.k].n).length + (S.bty.g.length && S.bty.g.every(g => g.got) && !S.bty.bonus ? 1 : 0) : 0;
 function btyCard(t, inSheet) {
   if (!S.bty || !S.bty.g.length) return "";
@@ -2380,9 +2434,22 @@ function bldTall(b, L, cls) {
   body = body.replace(sh, "").replace(gr, "");
   const [fx, fw, kind] = BFOOT[b] || [24, 72, "wood"], wall = kind === "stone" ? "#b9b4a8" : kind === "white" ? "#f7f4ec" : "#f2e2bf";
   let st = "";
+  if (b === "hall") { // rc6.4.2: the castle grows as one piece (hallArt), no stacked storeys
+    body = hallArt(L, ex); const dz = vv && vl >= 3 ? "" : "";
+    return `<svg ${cls ? `class="${cls}" ` : ""}viewBox="0 ${-ex} 120 ${90 + ex}" xmlns="http://www.w3.org/2000/svg">${sh}${gr}${paint(body)}${dz}</svg>`;
+  }
+  // rc6.4.2 (art polish): each storey matches its building: timber framing on wood, brick courses on stone, shutters on white;
+  // the same upper-left light and right shade as the Hall, and a cornice under the level-1 house
+  const BEAM = "#6b4226", SHUT = kind === "white" ? "#3f8a4a" : kind === "wood" ? "#a0653a" : null;
   for (let i = 0; i < Math.round(ex / 22.5); i++) { const y = 82 - 22.5 * (i + 1); // storeys from the ground up; the level-1 house sits on top
-    st += `<rect x="${fx}" y="${y}" width="${fw}" height="22.5" fill="${wall}" stroke="#3a2a1f" stroke-width="2.4"/><path d="M${fx - 2} ${y} H${fx + fw + 2}" stroke="#3a2a1f" stroke-width="3"/>`;
-    const nw = Math.max(1, Math.floor(fw / 22)); for (let j = 0; j < nw; j++) { const wx = fx + (fw / nw) * (j + .5) - 4; st += `<rect x="${wx.toFixed(1)}" y="${y + 5}" width="9" height="12" rx="3.5" fill="#9fd0f0" stroke="#3a2a1f" stroke-width="1.6"/>`; }
+    st += `<rect x="${fx}" y="${y}" width="${fw}" height="22.5" fill="${wall}" stroke="#3a2a1f" stroke-width="2.4"/>`;
+    if (kind === "stone") st += bricks(fx, y, fw, 22.5, 3);
+    if (kind === "wood") st += `<path d="M${fx + 3} ${y} V${y + 22.5} M${fx + fw - 3} ${y} V${y + 22.5} M${fx} ${y + 20} H${fx + fw}" stroke="${BEAM}" stroke-width="3" fill="none"/>`;
+    const nw = Math.max(1, Math.floor(fw / 22)); for (let j = 0; j < nw; j++) { const wx = fx + (fw / nw) * (j + .5) - 4.5;
+      if (SHUT && fw / nw >= 20) st += `<rect x="${(wx - 4).toFixed(1)}" y="${y + 5}" width="3.6" height="12" rx="1" fill="${SHUT}" stroke="#3a2a1f" stroke-width="1.2"/><rect x="${(wx + 9.4).toFixed(1)}" y="${y + 5}" width="3.6" height="12" rx="1" fill="${SHUT}" stroke="#3a2a1f" stroke-width="1.2"/>`;
+      st += `<rect x="${wx.toFixed(1)}" y="${y + 5}" width="9" height="12" rx="${kind === "stone" ? 4.5 : 2}" fill="#9fd0f0" stroke="#3a2a1f" stroke-width="1.6"/><path d="M${(wx + 2).toFixed(1)} ${y + 7.5} v4" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>`;
+      if (kind !== "stone") st += `<rect x="${(wx - 1).toFixed(1)}" y="${y + 16.4}" width="11" height="2.6" rx="1" fill="${kind === "white" ? "#d9d3c4" : BEAM}" stroke="#3a2a1f" stroke-width="1"/>`; }
+    st += LIT(fx, y, fw, 22.5) + `<path d="M${fx - 2} ${y} H${fx + fw + 2}" stroke="#3a2a1f" stroke-width="3"/>`;
     if (vl >= 3 && i === 0) st += `<rect x="${fx + 4}" y="${y + 17}" width="${Math.min(22, fw - 8)}" height="4" rx="1.5" fill="#8a5a3a" stroke="#3a2a1f" stroke-width="1"/><circle cx="${fx + 9}" cy="${y + 16}" r="2.2" fill="#ff6fa8"/><circle cx="${fx + 15}" cy="${y + 16}" r="2.2" fill="#ffd34d"/>`;
   }
   let deco = "";
@@ -2393,8 +2460,8 @@ function bldTall(b, L, cls) {
 }
 
 // ---------- sheets ----------
-function openSheet(html, kind) { const sh = $("#sheet"); sh.innerHTML = `<div class="box">${html}</div>`; sh.hidden = false; sheetKind = kind || "x"; }
-function closeSheet() { const sh = $("#sheet"); sh.hidden = true; sh.innerHTML = ""; sheetKind = null; send = null; }
+function openSheet(html, kind) { const sh = $("#sheet"); sh.innerHTML = `<div class="box">${html}</div>`; sh.hidden = false; sheetKind = kind || "x"; MAR.sync(); }
+function closeSheet() { const sh = $("#sheet"); sh.hidden = true; sh.innerHTML = ""; sheetKind = null; send = null; MAR.sync(); }
 function openRecruit() {
   rbFix(); // a class that filled up is swapped even on a frozen board
   const t = now(), full = S.heroes.length >= SLOTS[S.b.hall - 1], c = recruitCost(), nx = (() => { const d = new Date(t); d.setHours(Math.floor(d.getHours() / 6) * 6 + 6, 0, 0, 0); return d.getTime(); })();
@@ -2468,11 +2535,12 @@ function openHero(id) {
 }
 function upgBlock(b, t) {
   const L = S.b[b];
-  if (S.up && S.up.b === b && upReady(t)) return `<button class="go big" data-act="finish" data-b="${b}">${IC.hammer.replace("<svg", '<svg width="24" height="24"')} Finish · level ${L + 1}</button>`;
-  if (S.up && S.up.b === b) return `<div class="small">Upgrading to level ${L + 1} · <b data-end="${S.up.end}">${fmt(S.up.end - t)}</b></div><div class="bar"><i data-pg="${S.up.start},${S.up.end}" style="width:${Math.min(100, (t - S.up.start) / (S.up.end - S.up.start) * 100)}%"></i></div>`;
+  const U = upOf(b);
+  if (U && U.end <= t) return `<button class="go big" data-act="finish" data-b="${b}">${IC.hammer.replace("<svg", '<svg width="24" height="24"')} Finish · level ${L + 1}</button>`;
+  if (U) return `<div class="small">Upgrading to level ${L + 1} · <b data-end="${U.end}">${fmt(U.end - t)}</b></div><div class="bar"><i data-pg="${U.start},${U.end}" style="width:${Math.min(100, (t - U.start) / (U.end - U.start) * 100)}%"></i></div>`;
   if (L >= 5) return `<div class="small">Max level</div>`;
   if (!L && WORK[b] && S.b.hall < WORK[b].unlock) return `<div class="small">${IC.lock} Unlocks at Hall ${WORK[b].unlock}</div>`;
-  const c = upCost(b, L), blocked = S.up ? (upReady(t) ? `Builders busy · finish the ${BLD[S.up.b].toLowerCase()} first` : "Builders busy") : (b !== "hall" && L >= S.b.hall) ? "Needs a higher hall" : "";
+  const c = upCost(b, L), blocked = (b !== "hall" && L >= S.b.hall) ? "Needs a higher hall" : "";
   return `<button data-act="upg" data-b="${b}" ${blocked || S.gold < c ? "disabled" : ""}>${IC.hammer.replace("<svg", '<svg width="18" height="18"')} ${L ? "Upgrade" : "Build"} · ${IC.gold} ${num(c)} · ${fmt(upTime(b, L))}</button>${blocked ? `<div class="small">${blocked}</div>` : ""}`;
 }
 function bldInfo(b) {
@@ -2560,6 +2628,8 @@ function popupHTML() {
     if (e.ko) h += koCard(e);
     if (e.xps && e.xps.some(q => q[1] !== e.xp)) h += `<p class="small" id="xpEach">${e.xps.map(q => `${esc(q[0])} +${q[1]} ${IC.xp} ${esc(q[2])}`).join(" · ")}</p>`;
     e.lv.forEach(l => h += `<p>${IC.xp} <b>${esc(l)}!</b></p>`);
+  } else if (rets.length === 1 && ev.length === 1 && tlogOf(rets[0].tl)) { // rc6.4.2: one trip came home while away
+    h = `<h3>Party returned</h3>` + tripHTML(tlogOf(rets[0].tl), true);
   } else if (ev.length === 1 && ups.length === 1) {
     h = `<h3>${BLD[ups[0].b]} upgraded</h3><p>The ${BLD[ups[0].b].toLowerCase()} is now level ${ups[0].lvl}.</p>`;
   } else {
@@ -2570,6 +2640,8 @@ function popupHTML() {
     rets.filter(e => e.shook).forEach(e => h += `<p class="small">${IC.shield} ${esc(e.shook)} shook it off at ${esc(e.name)}. Run failed: half gold.</p>`);
     tot.lv.forEach(l => h += `<p>${IC.xp} <b>${esc(l)}!</b></p>`);
     ups.forEach(u => h += `<p>${BLD[u.b]} reached level ${u.lvl}.</p>`);
+    const TL = rets.map(e => tlogOf(e.tl)).filter(Boolean).reverse(); // rc6.4.2: a line per trip, newest first, inside the one summary
+    if (TL.length) h += `<h4 class="trhd">Trips</h4>` + TL.slice(0, 8).map(e => tripHTML(e, false)).join("") + (TL.length > 8 ? `<p class="small">+${TL.length - 8} more in Recent trips.</p>` : "");
   }
   if (rets.some(e => !e.full && (e.gold || e.pot || e.wpn))) h += `<p class="small">${IC.gold} Loot is in the bank. Tap the coin to collect.</p>`;
   return h + `<button class="go big" data-act="popOK">OK</button>`;
@@ -2637,10 +2709,10 @@ function coinBurst(el, v) {
   document.body.appendChild(b); setTimeout(() => b.remove(), 1200);
 }
 // ---------- chores: one new every 3 h of the phone clock, up to 2 waiting, a new save starts with 1 ----------
-const CHORE_EVERY = 3 * HR, CHORE_MAX = 2, CHORE_GOLD = 30, HOLD_MS = 3000;
+const CHORE_EVERY = 3 * HR, CHORE_MAX = 2, CHORE_GOLD = 30, HOLD_MS = 3000, WATER_TAPS = 4, WATER_GAP = 90; // rc6.4.2: the garden chore is 4 taps per rose (was a 3 s hold); same pay
 const CHORES = {
   fence: { name: "Fix the fence", ic: "🔨", how: "Tap each loose board 3 times to hammer it in.", n: 6, unit: "boards" },
-  garden: { name: "Water the garden", ic: "🌱", how: "Press and hold each droopy plant for 3 s until it perks up.", n: 5, unit: "plants" },
+  garden: { name: "Water the garden", ic: "🌱", how: "Tap each droopy rose 4 times to water it until it perks up.", n: 5, unit: "plants" },
   crates: { name: "Sort the crates", ic: "📦", how: "Drag each crate onto the shelf with its matching icon.", n: 6, unit: "crates" },
 };
 function newChore(s, k, rnd) {
@@ -2672,7 +2744,7 @@ function openChore(id) {
   const c = choreOf(id); if (!c) return closeSheet(); const K = CHORES[c.k];
   let h = `<h3>${K.ic} ${K.name}</h3><p class="small" id="choreHow">${K.how}</p><div class="chplay ch-${c.k}" data-c="${c.id}">`;
   if (c.k === "fence") h += `<div class="fence">${c.p.map((x, i) => `<button class="board${x >= 3 ? " in" : ""}" data-act="fenceTap" data-c="${c.id}" data-i="${i}" ${x >= 3 ? "disabled" : ""} aria-label="Board ${i + 1}">${[0, 1, 2].map(j => `<i class="nail${j < x ? " on" : ""}"></i>`).join("")}</button>`).join("")}</div>`;
-  else if (c.k === "garden") h += `<div class="garden">${c.p.map((x, i) => `<div class="plant${x ? " up" : ""}" data-c="${c.id}" data-i="${i}" role="button" aria-label="Plant ${i + 1}"><span class="pl">${x ? "🌻" : "🥀"}</span><i class="ring" style="--p:${x ? 1 : 0}"></i></div>`).join("")}</div>`;
+  else if (c.k === "garden") h += `<div class="garden">${c.p.map((x, i) => `<div class="plant${x ? " up" : ""}" data-c="${c.id}" data-i="${i}" role="button" aria-label="Rose ${i + 1}: ${x ? "watered" : `${(c.w && c.w[i]) || 0} of ${WATER_TAPS} taps`}"><span class="pl">${x ? "🌻" : "🥀"}</span><i class="ring" style="--p:${x ? 1 : (((c.w && c.w[i]) || 0) / WATER_TAPS).toFixed(3)}"></i><span class="drops" aria-hidden="true">${Array.from({ length: WATER_TAPS }, (_, j) => `<i class="${x || j < ((c.w && c.w[i]) || 0) ? "on" : ""}"></i>`).join("")}</span></div>`).join("")}</div>`;
   else h += `<div class="shelves">${["potion", "ration", "sword"].map(k => `<div class="shelf" data-act="crateShelf" data-k="${k}" data-c="${c.id}">${SHELF_IC[k]()}<span class="sc">${c.kinds.filter((q, i) => q === k && c.p[i]).length}</span></div>`).join("")}</div>
       <div class="crates">${c.kinds.map((k, i) => c.p[i] ? `<div class="crate gone"></div>` : `<div class="crate" data-c="${c.id}" data-i="${i}" data-k="${k}" role="button" aria-label="${k} crate">${SHELF_IC[k]()}</div>`).join("")}</div>`;
   h += `</div><div class="small" id="choreProg">${choreDoneN(c)} of ${K.n} ${K.unit} · pays ${num(choreGold())} gold</div><div class="btns"><button class="alt" data-act="close">Later</button></div>`;
@@ -2687,15 +2759,19 @@ function choreStep(c) { // after each finished board, plant or crate
   commit(); setTimeout(() => { if (sheetKind === "chore:" + c.id) closeSheet(); }, 900);
 }
 // hold (garden) and drag (crates): pointer events on the sheet; a tap-crate-then-tap-shelf fallback for crates too
-const CH = { hold: null, drag: null, sel: null };
+const CH = { hold: null, drag: null, sel: null, wt: null };
 document.addEventListener("pointerdown", e => {
   const pl = e.target.closest && e.target.closest(".plant:not(.up)");
-  if (pl) { const c = choreOf(pl.dataset.c); if (!c) return; e.preventDefault(); const i = +pl.dataset.i, t0 = performance.now(), ring = pl.querySelector(".ring");
-    pl.classList.add("hold"); CH.hold = { pl, c, i, t0, raf: 0 };
-    const step = () => { if (!CH.hold || CH.hold.pl !== pl) return; const f = Math.min(1, (performance.now() - t0) / HOLD_MS); ring.style.setProperty("--p", f.toFixed(3));
-      if (f >= 1) { CH.hold = null; pl.classList.remove("hold"); pl.classList.add("up"); pl.querySelector(".pl").textContent = "🌻"; c.p[i] = 1; AUD.cue("tap"); choreStep(c); return; }
-      CH.hold.raf = requestAnimationFrame(step); };
-    CH.hold.raf = requestAnimationFrame(step); return; }
+  // rc6.4.2: water a rose with taps (WATER_TAPS per rose). Each tap fills a quarter of the ring and a drop; the chore pays only once
+  // it's finished (same CHORE_GOLD, same chore clock and cap), so tapping faster or more can't make extra gold.
+  if (pl) { const c = choreOf(pl.dataset.c); if (!c || c.k !== "garden") return; e.preventDefault(); const i = +pl.dataset.i; if (!(i >= 0 && i < c.p.length) || c.p[i]) return;
+    const tn = performance.now(); if (CH.wt && CH.wt.pl === pl && tn - CH.wt.at < WATER_GAP) return; CH.wt = { pl, at: tn }; // one tap = one pointer press (no double events)
+    c.w = Array.isArray(c.w) && c.w.length === c.p.length ? c.w : c.p.map(x => x ? WATER_TAPS : 0);
+    c.w[i] = Math.min(WATER_TAPS, (c.w[i] || 0) + 1); const n = c.w[i], ring = pl.querySelector(".ring");
+    if (ring) ring.style.setProperty("--p", (n / WATER_TAPS).toFixed(3)); pl.querySelectorAll(".drops i").forEach((d, j) => d.classList.toggle("on", j < n));
+    pl.classList.remove("tap"); void pl.offsetWidth; pl.classList.add("tap"); pl.setAttribute("aria-label", `Rose ${i + 1}: ${n} of ${WATER_TAPS} taps`);
+    if (n >= WATER_TAPS) { pl.classList.add("up"); pl.querySelector(".pl").textContent = "🌻"; pl.setAttribute("aria-label", `Rose ${i + 1}: watered`); c.p[i] = 1; AUD.cue("tap"); choreStep(c); return; }
+    AUD.cue("tap"); save(); return; }
   const cr = e.target.closest && e.target.closest(".crate:not(.gone)");
   if (cr) { e.preventDefault(); const r = cr.getBoundingClientRect(); CH.drag = { cr, x0: e.clientX, y0: e.clientY, moved: false, id: e.pointerId }; try { cr.setPointerCapture(e.pointerId); } catch (er) { } }
 }, { passive: false });
@@ -2807,12 +2883,13 @@ function wbChest(i, T) {
 }
 function wbRet(p) {
   const T = p.end, mem = p.members.map(hero).filter(Boolean), L = WB_LIST[(S.boss || { ri: 0 }).ri];
-  S.parties.splice(S.parties.indexOf(p), 1);
+  S.parties.splice(S.parties.indexOf(p), 1); const bty0 = btySnap();
   if (!p.hit) { p.hit = 1; wbHit(p, T); }
   btyAdd("boss");
   for (const h of mem) h.vig = Math.min(VIG_MAX, vigOf(h) + 1); // a finished trip: +1 Vigor; no XP, no gold, never a knockout
   if (mem.length) S.gate.push({ tid: "boss", name: L.name, ic: L.ic, members: mem.map(h => h.id), reason: "Back home", loot: null, T });
   const ev = { live: LIVE && !document.hidden, T, failed: false }; AUD.ret(ev);
+  tlogAdd({ k: "ret", boss: 1, tid: "boss", name: L.name, ic: L.ic, T, names: mem.map(h => h.name), failed: false, gold: 0, xp: 0, pot: 0, rat: 0, wpn: null, lv: [], dmg: p.dmg || 0, bty: btyDiff(bty0) }); // rc6.4.2: chests go to the bank on their own (DESIGN 35)
   if (ev.live) BN.add("ret", L.ic, `${whoTxt(mem.map(h => h.name))} hit the ${L.name} for ${num(p.dmg || 0)}.`);
 }
 function wbCard(t) {
@@ -2876,7 +2953,7 @@ function renderTown(t) {
   }
   h += `<h2>Buildings</h2>`;
   for (const b of Object.keys(BLD)) {
-    const L = S.b[b], ready = upReady(t) && S.up.b === b;
+    const L = S.b[b], ready = upReadyB(b, t);
     h += `<div class="card" data-bcard="${b}"><div class="row bld"><span style="position:relative;display:block" data-act="bld" data-b="${b}">${bldSVG(b, L)}${ready ? `<span class="badge ham bnc">${IC.hammer}</span>` : ""}</span><div class="grow"><h3>${BLD[b]} <span class="small">Lv ${L}</span></h3><div class="small">${bldInfo(b)}</div></div></div><div style="margin-top:8px">${upgBlock(b, t)}</div>`;
     if (b === "hall") h += `<div class="btns">${recBtn()}<button class="alt" data-act="cpOpen" id="cpBtn">🗺️ Campaign</button><button class="alt" data-act="colOpen">📖 Collections${colN() >= 10 ? ` · ${"🏅".repeat(Math.min(5, Math.floor(colN() / 10)))}${colN() >= 60 ? "+" : ""}` : ""}</button><button class="alt" data-act="copyCode">Copy save code</button><button class="alt" data-act="pasteCode">Paste save code</button><button class="alt" data-act="tipsReset">Show tips again</button></div><div class="small" id="lastBackup" style="margin-top:6px">Last backup: ${backupAgo(t)}</div>`;
     if (b === "infirmary") koList(t).forEach(x => h += `<div class="list-item" style="flex-wrap:wrap"><span class="chip" style="box-shadow:none"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)}</span><b data-cend="${x.koEnd}">${fmtCL(x.koEnd - t)}</b><div style="width:100%">${healBtns(x, t)}</div></div>`);
@@ -2936,7 +3013,7 @@ function renderPanel(x, t) {
 }
 function renderHeroes(t) {
   if (PANEL != null) { if (hero(PANEL)) return renderPanel(hero(PANEL), t); PANEL = null; }
-  let h = `<div class="row" style="margin-bottom:12px"><div class="grow"><b id="slotsH">Heroes ${S.heroes.length} of ${SLOTS[S.b.hall - 1]} slots</b></div>${recBtn()}</div>`;
+  let h = `<div class="row" style="margin-bottom:12px"><div class="grow"><b id="slotsH">Heroes ${S.heroes.length} of ${SLOTS[S.b.hall - 1]} slots</b></div>${recBtn()}</div><div class="btns" style="margin:-4px 0 12px"><button class="alt" data-act="tripsOpen" id="tripsBtnH">📜 Recent trips</button></div>`;
   S.heroes.forEach(x => {
     const out = inParty(x.id), next = XP_TO_NEXT(x.lvl), q = equipNeed(x);
     h += `<div class="card hcard" data-hcard="${x.id}" data-act="heroPanel" data-h="${x.id}"><div class="row" style="align-items:flex-start"><div class="portrait">${heroSVG(x.cls, x.seed, x.weapon)}</div><div class="grow">
@@ -2989,10 +3066,10 @@ function render() {
   document.documentElement.classList.toggle("mapon", TAB === "map");
   if (TAB === "map") { main.className = "mapmode"; if (scrollY) window.scrollTo(0, 0); mapSync(t); placeVP(); }
   else { if (SC) { SC = null; } main.className = ""; main.innerHTML = TAB === "heroes" ? renderHeroes(t) : TAB === "stores" ? renderStores() : renderTown(t); }
-  lastSig = sig(t); updTimers(t); BN.sync(); BN.place(); BN.badge();
+  lastSig = sig(t); updTimers(t); BN.sync(); BN.place(); BN.badge(); MAR.sync(t);
 }
 function sig(t) {
-  return [townSig(t), S.boss ? S.boss.wk + ":" + S.boss.hp + ":" + S.boss.paid + (S.boss.over ? "o" : "") : "", wbLive(t) ? "B" : "", dIdx(t), dReady(t) ? "D" : "", S.chores.list.length, S.parties.map(p => p.id + phase(p, t)).join(","), S.gate.map(g => g.reason + g.members.length + (g.loot ? "L" : "")).join(","), S.heroes.map(h => h.id + (isKO(h, t) ? "k" : "") + (h.weapon || "") + (h.supply ? h.supply.k + h.supply.n : "") + (canHeal(h, t) ? "h" : "")).join(","), S.up ? S.up.end + (upReady(t) ? "r" : "") : 0, Object.values(S.b).join(""), bankFull(t), Math.floor(bankHours(t)), S.events.length, backupAgo(t), needNudge(t), S.pins.map(p => p.id).join(","), S.gob ? S.gob.on.join(".") + "/" + S.gob.n : "", bankHas(), S.gold >= 50, S.potions, S.weapons.length].join("|");
+  return [townSig(t), S.boss ? S.boss.wk + ":" + S.boss.hp + ":" + S.boss.paid + (S.boss.over ? "o" : "") : "", wbLive(t) ? "B" : "", dIdx(t), dReady(t) ? "D" : "", S.chores.list.length, S.parties.map(p => p.id + phase(p, t)).join(","), S.gate.map(g => g.reason + g.members.length + (g.loot ? "L" : "")).join(","), S.heroes.map(h => h.id + (isKO(h, t) ? "k" : "") + (h.weapon || "") + (h.supply ? h.supply.k + h.supply.n : "") + (canHeal(h, t) ? "h" : "")).join(","), S.ups.map(u => u.b + u.end + (u.end <= t ? "r" : "")).join(","), Object.values(S.b).join(""), bankFull(t), Math.floor(bankHours(t)), S.events.length, backupAgo(t), needNudge(t), S.pins.map(p => p.id).join(","), S.gob ? S.gob.on.join(".") + "/" + S.gob.n : "", bankHas(), S.gold >= 50, S.potions, S.weapons.length].join("|");
 }
 function updTimers(t) {
   document.querySelectorAll("[data-end]").forEach(el => el.textContent = fmt(+el.dataset.end - t));
@@ -3001,6 +3078,7 @@ function updTimers(t) {
   document.querySelectorAll("[data-pg]").forEach(el => { const [a, b] = el.dataset.pg.split(",").map(Number); el.style.width = Math.min(100, (t - a) / (b - a) * 100) + "%"; });
   const tc = $("#tclock"); if (tc) tc.textContent = "+" + fmt(S.offset || 0);
   if (TAB === "map" && SC) { clampBubs(); wbMapSync(t); BN.place(); }
+  MAR.time(t);
 }
 function tick() {
   if (!S) return;
@@ -3008,6 +3086,8 @@ function tick() {
   if (n || sig(t) !== lastSig) { save(); render(); } else updTimers(t);
   if (send && sheetKind && !$("#sheet").hidden && !!send.full !== bankFull(t) && $("#sheet [data-act=sendGo]")) { const bx = $("#sheet .box"), st = bx ? bx.scrollTop : 0; openSend(); const b2 = $("#sheet .box"); if (b2) b2.scrollTop = st; }
   maybePopup();
+  if (sheetKind === "march") MAR.refresh(t); // a stage changed: the panel lines follow
+  NPA.check(); // rc6.4.2: the one-time notifications card, once nothing else is up
 }
 // ---------- the View map (section 17): built once, then updated in place ----------
 let SC = null;
@@ -3317,7 +3397,7 @@ function mapSync(t) {
   // town buildings by the gate
   const lyB = $("#lyB");
   for (const b of Object.keys(BLD)) {
-    const ready = upReady(t) && S.up.b === b, going = S.up && S.up.b === b && !ready;
+    const ready = upReadyB(b, t), going = !!upOf(b) && !ready;
     const badge = ready ? "ham" : going ? "clock" : b === "bank" && bankHas() ? "coin" : b === "infirmary" && S.heroes.some(h => canHeal(h, t)) ? "cross" : "";
     if (WORK[b] && !S.b[b] && S.b.hall < WORK[b].unlock) { if (SC.bl[b]) { SC.bl[b].el.remove(); delete SC.bl[b]; } continue; } // a locked plot isn't shown
     const vv = vAt(b), key = `${S.b[b]}|${badge}|${vv ? vLvl(vv) : 0}|${b === "hall" && S.camp && S.camp.crown ? "c" : ""}`; let o = SC.bl[b];
@@ -3325,7 +3405,7 @@ function mapSync(t) {
     if (o.key !== key) {
       o.key = key; const [x, y] = SC.G.V(VIL.b[b]), L = S.b[b], ex = bldEx(L), bw = 120 * k, bh = 90 * k * (90 + ex) / 90; // rc6.3: 120 px wide (about 2x), a storey per level (level 5 is 2x as tall)
       o.el.style.cssText = `left:${(x - bw / 2).toFixed(1)}px;top:${(y - bh).toFixed(1)}px;width:${bw.toFixed(1)}px;height:${bh.toFixed(1)}px;z-index:${Math.round(y / SC.H * 100)}`;
-      o.el.setAttribute("aria-label", BLD[b]); o.el.innerHTML = bldTall(b, L, "b") + `<span class="blab">${BLD[b]}${L ? "" : " · build"}</span>` + (badge === "ham" ? `<span class="badge ham bnc">${IC.hammer}</span>` : badge === "clock" ? `<span class="badge clock">${IC.clock}<span data-end="${S.up.end}">${fmt(S.up.end - t)}</span></span>` : badge === "coin" ? `<span class="badge coin bnc">${IC.gold}</span>` : badge === "cross" ? `<span class="badge cross bnc">${IC.cross}</span>` : "");
+      o.el.setAttribute("aria-label", BLD[b]); o.el.innerHTML = bldTall(b, L, "b") + `<span class="blab">${BLD[b]}${L ? "" : " · build"}</span>` + (badge === "ham" ? `<span class="badge ham bnc">${IC.hammer}</span>` : badge === "clock" ? `<span class="badge clock">${IC.clock}<span data-end="${upOf(b).end}">${fmt(upOf(b).end - t)}</span></span>` : badge === "coin" ? `<span class="badge coin bnc">${IC.gold}</span>` : badge === "cross" ? `<span class="badge cross bnc">${IC.cross}</span>` : "");
     }
   }
   vilMap(t, k);
@@ -3439,8 +3519,12 @@ window.addEventListener("pagehide", () => save());
 let rsT = 0; window.addEventListener("resize", () => { placeVP(); clearTimeout(rsT); rsT = setTimeout(() => { if (TAB === "map" && SC) { const d = sceneDims(), v = vpEl(); placeVP(); if (d.W !== SC.W) { const fx = v ? (v.scrollLeft + v.clientWidth / 2) / SC.W : .5, fy = v ? (v.scrollTop + v.clientHeight / 2) / SC.H : .5; SC = null; render(); camOn(fx * SC.W, fy * SC.H, 0); } } }, 200); });
 // host badge clearance (DESIGN 15): only in a browser tab, never when installed
 // ---------- rc6.4.1: "heroes are home" push notifications (Web Push via the afk-town-push Worker) ----------
-// Off until the player turns it on in Settings. The Worker only learns a push subscription plus, per party out, its id, real end
-// time and the line to show. The private VAPID key lives only in the Worker. Every push shows a notification (sw.js).
+// Off until the player turns it on (Settings switch, or Allow on the one-time card, rc6.4.2). The Worker only learns a push
+// subscription plus, per party out / building upgrade, its id, real end time and the line to show. The private VAPID key lives
+// only in the Worker. Every push shows a notification (sw.js).
+// rc6.4.2: a schedule/cancel counts as sent only once the Worker answers OK; anything that failed (offline) is retried on the
+// next save after a short wait, on the "online" event and when the game comes back to the front (a full /sync).
+// rc6.4.2: building upgrades too: "<Building> is now level N!" at the upgrade's end; cancelled automatically if it goes away.
 const PUSH_URL = "https://afk-town-push.afktown.workers.dev", VAPID_PUB = "BIzDTRli9rQ3ziMfxQ8a7ntxVYw096KqPIQH2dPxtRIShWqIb5-J45ofUW9bOAUcKnJp9BjMhAg0H7B1RDktu_o", PUSH_KEY = "afktown.push";
 var PUSH = (() => { // var: save() may run before this line during start-up
   const ios = /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -3448,43 +3532,207 @@ var PUSH = (() => { // var: save() may run before this line during start-up
   const st = () => { try { return JSON.parse(localStorage.getItem(PUSH_KEY) || "{}"); } catch (e) { return {}; } };
   const put = o => { try { localStorage.setItem(PUSH_KEY, JSON.stringify(o)); } catch (e) { } };
   const u8 = b => { b = b.replace(/-/g, "+").replace(/_/g, "/"); while (b.length % 4) b += "="; return Uint8Array.from(atob(b), c => c.charCodeAt(0)); };
-  let sub = null, sent = {}, sig = "", busyP = null, pend = false;
+  let sub = null, sent = {}, busyP = null, pend = false, dirty = false, failAt = 0, lastSync = 0, syncing = null, gen = 0;
+  const fly = {}; // id -> the "at" being posted right now (no duplicate posts)
+  const RETRY = 30e3;
   const on = () => !!st().on && ok() && Notification.permission === "granted";
-  const post = (path, d) => fetch(PUSH_URL + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d), keepalive: true }).then(r => r.ok, () => false);
-  const jobs = () => { const off = (S && S.offset) || 0, t = Date.now(); return (S ? S.parties : []).filter(p => p.end - off > t + 5e3).map(p => {
+  // "ok": the Worker took it; "bad": the Worker refused it for good (4xx), don't loop on it; "fail": network/5xx, try again
+  const post = (path, d) => fetch(PUSH_URL + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(d), keepalive: true })
+    .then(r => r.ok ? "ok" : r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429 ? "bad" : "fail", () => "fail");
+  const jobs = () => { if (!S) return []; const off = S.offset || 0, t = Date.now(), J = S.parties.filter(p => p.end - off > t + 5e3).map(p => {
     const tg = tgOf(p.tid), names = p.members.map(hero).filter(Boolean).map(h => h.name);
-    return { id: "p" + p.id, at: Math.round(p.end - off), title: "AFK Town", body: `${whoTxt(names)} ${names.length === 1 ? "is" : "are"} home from ${tg ? tg.name : "their trip"}!` }; }).slice(0, 50); };
+    return { id: "p" + p.id, at: Math.round(p.end - off), title: "AFK Town", body: `${whoTxt(names)} ${names.length === 1 ? "is" : "are"} home from ${tg ? tg.name : "their trip"}!` }; });
+    for (const U of (S.ups || []).slice().sort((a, c) => c.end - a.end)) if (BLD[U.b] && U.end - off > t + 5e3) { const n = (S.b[U.b] || 0) + 1; J.unshift({ id: `u${U.b}${n}`, at: Math.round(U.end - off), title: "AFK Town", body: `${BLD[U.b]} is now level ${n}!` }); }
+    return J.slice(0, 50); };
   async function getSub(make) {
     const reg = await navigator.serviceWorker.ready; let s0 = await reg.pushManager.getSubscription();
     if (!s0 && make) s0 = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: u8(VAPID_PUB) });
     return s0 ? JSON.parse(JSON.stringify(s0)) : null;
   }
-  async function sync() { // the full list: also clears parties that are gone (recalled, finished early)
-    if (!on()) return; if (!S) { pend = true; return; } pend = false; try { sub = sub || await getSub(true); if (!sub) return; const J = jobs(); if (await post("/sync", { sub, jobs: J })) { sent = Object.fromEntries(J.map(j => [j.id, j.at])); sig = J.map(j => j.id + ":" + j.at).join(","); } } catch (e) { }
+  function sync() { // the full list: also clears jobs that are gone (recalled, finished early)
+    if (!on()) return Promise.resolve(); if (!S) { pend = true; return Promise.resolve(); } pend = false;
+    if (syncing) return syncing;
+    const g = ++gen;
+    return syncing = (async () => {
+      try {
+        sub = sub || await getSub(true); if (!sub) { dirty = true; failAt = Date.now(); return; }
+        const J = jobs(), r = await post("/sync", { sub, jobs: J });
+        if (r === "fail") { dirty = true; failAt = Date.now(); return; }
+        if (g === gen) { sent = Object.fromEntries(J.map(j => [j.id, j.at])); dirty = false; lastSync = Date.now(); tick(); } // tick: anything that changed while the sync was out
+      } catch (e) { dirty = true; failAt = Date.now(); } finally { syncing = null; }
+    })();
   }
-  function tick() { // after each save: schedule new parties, cancel ones that left early
-    if (pend && S) { sync(); return; } if (!on() || !sub) return; const J = jobs(), k = J.map(j => j.id + ":" + j.at).join(","); if (k === sig) return; sig = k;
-    const now = Object.fromEntries(J.map(j => [j.id, j.at]));
-    for (const j of J) if (sent[j.id] !== j.at) post("/schedule", { sub, ...j });
-    for (const id of Object.keys(sent)) if (!(id in now)) post("/cancel", { sub, id });
-    sent = now;
+  function tick() { // after each save: schedule new jobs, cancel ones that left early; only what the Worker confirmed counts as sent
+    if (pend && S) { sync(); return; } if (!on() || !sub || syncing) return;
+    if (dirty) { if (Date.now() - failAt >= RETRY) sync(); return; } // after a failure: one full sync, not a pile of single posts
+    const J = jobs(), now = Object.fromEntries(J.map(j => [j.id, j.at])), g = gen;
+    const done = (r, fn) => { if (g !== gen) return; if (r === "fail") { dirty = true; failAt = Date.now(); } else fn(); };
+    for (const j of J) if (sent[j.id] !== j.at && fly[j.id] !== j.at) { fly[j.id] = j.at; post("/schedule", { sub, ...j }).then(r => { if (fly[j.id] === j.at) delete fly[j.id]; done(r, () => { sent[j.id] = j.at; }); }); }
+    const soon = Date.now() + 5e3; // a job that is due now (heroes home, upgrade done) just leaves the list: no cancel, so its push still comes
+    for (const id of Object.keys(sent)) if (!(id in now) && sent[id] <= soon) delete sent[id];
+    for (const id of Object.keys(sent)) if (!(id in now) && fly[id] !== "x") { fly[id] = "x"; post("/cancel", { sub, id }).then(r => { if (fly[id] === "x") delete fly[id]; done(r, () => { delete sent[id]; }); }); }
   }
-  async function toggle() {
+  function resync(why) { // "online" or back to the front
+    if (!on()) return; if (why === "online" || dirty || (lastSync && Date.now() - lastSync > 60e3)) sync();
+  }
+  // turning on: the Settings switch and the one-time card (rc6.4.2) both come here. requestPermission is the first await, so
+  // it still runs inside the tap.
+  function enable() {
     if (busyP) return busyP;
     return busyP = (async () => {
       try {
-        if (st().on) { const s0 = sub || await getSub(false).catch(() => null); if (s0) await post("/sync", { sub: s0, jobs: [] }); try { const reg = await navigator.serviceWorker.ready, x = await reg.pushManager.getSubscription(); if (x) await x.unsubscribe(); } catch (e) { } sub = null; sent = {}; sig = ""; put({}); toast("Notifications off."); return; }
-        if (ios && !STANDALONE) { toast("Add to Home Screen first (Share, then Add to Home Screen)."); return; }
-        if (!ok()) { toast("This browser can't show notifications."); return; }
-        const pm = await Notification.requestPermission(); if (pm !== "granted") { toast("Notifications are blocked in this phone's settings."); return; }
-        sub = await getSub(true); if (!sub) { toast("Couldn't turn on notifications."); return; }
-        put({ on: 1 }); sig = ""; await sync(); toast("Notifications on. We'll tell you when heroes are home.");
-      } catch (e) { toast("Couldn't turn on notifications."); } finally { busyP = null; }
+        if (on()) return true;
+        if (ios && !STANDALONE) { toast("Add to Home Screen first (Share, then Add to Home Screen)."); return false; }
+        if (!ok()) { toast("This browser can't show notifications."); return false; }
+        const pm = await Notification.requestPermission(); if (pm !== "granted") { toast("Notifications are blocked in this phone's settings."); return false; }
+        sub = await getSub(true); if (!sub) { toast("Couldn't turn on notifications."); return false; }
+        put({ on: 1 }); sent = {}; dirty = false; await sync(); toast("Notifications on. We'll tell you when heroes are home and buildings finish.");
+        return true;
+      } catch (e) { toast("Couldn't turn on notifications."); return false; } finally { busyP = null; }
     })();
   }
-  const note = () => ios && !STANDALONE ? "Add to Home Screen first (Share, then Add to Home Screen)" : !ok() ? "Not available in this browser" : typeof Notification !== "undefined" && Notification.permission === "denied" ? "Blocked in this phone's settings" : "Tells you when heroes are home, even with the game closed";
-  return { on, toggle, sync, tick, note, jobs };
+  function disable() {
+    if (busyP) return busyP;
+    return busyP = (async () => {
+      try { gen++; const s0 = sub || await getSub(false).catch(() => null); if (s0) await post("/sync", { sub: s0, jobs: [] }); try { const reg = await navigator.serviceWorker.ready, x = await reg.pushManager.getSubscription(); if (x) await x.unsubscribe(); } catch (e) { } sub = null; sent = {}; dirty = false; put({}); toast("Notifications off."); }
+      catch (e) { } finally { busyP = null; }
+    })();
+  }
+  const toggle = () => busyP ? busyP : st().on ? disable() : enable();
+  const note = () => ios && !STANDALONE ? "Add to Home Screen first (Share, then Add to Home Screen)" : !ok() ? "Not available in this browser" : typeof Notification !== "undefined" && Notification.permission === "denied" ? "Blocked in this phone's settings" : "Tells you when heroes are home and buildings finish, even with the game closed";
+  // the one-time card (rc6.4.2): may it be asked now? "wait" = not here (iOS in a plain Safari tab), ask on a later launch
+  const askable = () => {
+    if (ios && !STANDALONE) return "wait";
+    if (!ok() || st().on || Notification.permission !== "default") return "no";
+    return "yes";
+  };
+  return { on, toggle, enable, disable, sync, tick, resync, note, jobs, askable, get state() { return { sent: { ...sent }, dirty, fly: { ...fly }, hasSub: !!sub }; } };
 })();
+// ---------- rc6.4.2: trip reports and the Recent trips log ----------
+// Every trip that comes home adds one entry to S.tlog (saved, last TLOG_MAX, oldest dropped), copied from the trip's own report
+// (ev) right after ret() credited it, so the log shows exactly what was given: gold, XP per hero, rank-ups, the weapon (tier),
+// Potions, Rations, campaign gold, bounty steps, a knockout. Nothing here gives anything.
+// While away: one "Party returned" card for a single trip, or one "While you were away" summary with a line per trip.
+const TLOG_MAX = 20;
+function tlogAdd(e) {
+  const L = Array.isArray(S.tlog) ? S.tlog : (S.tlog = []); S.tlseq = (S.tlseq || 0) + 1;
+  const x = { id: S.tlseq, T: e.T, tid: e.tid, name: e.name, ic: e.ic, names: (e.names || []).slice(), failed: !!e.failed, full: !!e.full, gold: e.gold || 0, xp: e.xp || 0, xps: (e.xps || []).map(q => q.slice()), lv: (e.lv || []).slice(), pot: e.pot || 0, rat: e.rat || 0, wpn: e.wpn || null };
+  if (e.ko) { x.ko = e.ko; x.koMs = e.koMs; } if (e.shook) x.shook = e.shook; if (e.cp) x.cp = { id: e.cp.id, g: e.cp.g, name: CPM[e.cp.id] ? CPM[e.cp.id].name : "" }; if (e.bty && e.bty.length) x.bty = e.bty.map(b => ({ ...b })); if (e.boss) { x.boss = 1; x.dmg = e.dmg || 0; }
+  L.push(x); if (L.length > TLOG_MAX) L.splice(0, L.length - TLOG_MAX); return x.id;
+}
+const tlogOf = id => (S.tlog || []).find(x => x.id === +id) || null;
+const tierOf = w => (TIERS[wT(w)] || TIERS.rusty).name;
+const whenTxt = T => { const d = new Date(T - (S.offset || 0)); return d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); };
+function tripHTML(e, full) { // full = the "Party returned" card; otherwise one compact line block for the summary/log
+  const res = e.boss ? `<b class="cpok">Hit for ${num(e.dmg || 0)}</b>` : e.failed ? `<b class="cpno">✗ Failed</b>` : `<b class="cpok">✓ Success</b>`;
+  const loot = [`${IC.gold}+${num(e.gold)}`, e.pot ? `${IC.potion}+${e.pot}` : "", e.rat ? `${IC.ration}+${e.rat}` : "", e.wpn ? `${IC.sword}${esc(wName(e.wpn))} <span class="small">(${esc(tierOf(e.wpn))})</span>` : ""].filter(Boolean);
+  let h = `<div class="trip${full ? " big" : ""}" data-trip="${e.id || ""}"><div class="row trh"><span class="tic">${e.ic || "❔"}</span><div class="grow"><b>${esc(e.name || "?")}</b><div class="small">${esc(whoTxt(e.names || []))} · ${res}</div></div><span class="small trw">${whenTxt(e.T)}</span></div>`;
+  if (!e.boss) h += `<div class="trl">${loot.join(" ")}</div>`;
+  if (e.xps && e.xps.length) h += `<div class="small trx">${e.xps.map(q => `${esc(q[0])} +${num(q[1])} XP`).join(" · ")}</div>`;
+  (e.lv || []).forEach(l => h += `<div class="small trv">${IC.xp} <b>${esc(l)}!</b></div>`);
+  if (e.cp) h += `<div class="small">🗺️ Campaign: ${esc(e.cp.name || "mission")} cleared · +${num(e.cp.g)} gold (in the total)</div>`;
+  (e.bty || []).forEach(b => h += `<div class="small">📋 Bounty: ${esc(b.txt)} · ${b.c}/${b.n}${b.c >= b.n ? " ✓" : ""}</div>`);
+  if (e.ko) h += `<div class="small">${IC.cross} ${esc(e.ko)} was knocked out · ${fmtFull(e.koMs || 0)} in the infirmary</div>`;
+  else if (e.shook) h += `<div class="small">${IC.shield} ${esc(e.shook)} shook it off · half gold</div>`;
+  if (e.full) h += `<div class="small">${IC.bag} Bank full: the loot waits at the gate.</div>`;
+  return h + `</div>`;
+}
+function openTrips() {
+  const L = (S.tlog || []).slice().reverse(); // newest first
+  let h = `<button class="sx" data-act="close" aria-label="Close">✕</button><h3>📜 Recent trips</h3>`;
+  h += L.length ? `<p class="small">The last ${L.length} trip${L.length === 1 ? "" : "s"}, newest first.</p>` + L.map(e => tripHTML(e, false)).join("") : `<p class="small">No trips yet. Send a party from the Map.</p>`;
+  openSheet(h, "trips"); const bx = $("#sheet .box"); if (bx) bx.classList.add("tripbox");
+}
+// ---------- rc6.4.2: march times (a floating button, middle of the right edge of the map) ----------
+// Shows only while a party is out: a party icon, the number out and the soonest homecoming. Tapping it opens a compact panel:
+// each party (names, where, the stage now, the time to the next stage and to home) and every building upgrade in progress.
+// Read-only: it only reads the parties' fixed start/outEnd/jobEnd/end and S.ups; nothing here can shorten a timer.
+// Never over the tab bar, the Village button, the banners or the map's places: it slides up or down the right edge to a free spot,
+// and hides while any sheet/modal (and the one-time notifications card) is open.
+const MAR = (() => {
+  const short = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); if (s >= 3600) return Math.floor(s / 3600) + "h " + Math.floor(s % 3600 / 60) + "m"; return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  const ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V3" stroke="#3a2a1f" stroke-width="2.2" stroke-linecap="round"/><path d="M6 4h12l-3 4 3 4H6z" fill="#c0392b" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><circle cx="15" cy="18" r="3" fill="#f2b84b" stroke="#3a2a1f" stroke-width="1.8"/><circle cx="20" cy="19.5" r="2.2" fill="#7fb6e0" stroke="#3a2a1f" stroke-width="1.6"/></svg>`;
+  const out = t => S ? S.parties.filter(p => p.end > t).sort((a, b) => a.end - b.end) : [];
+  const stage = (p, t) => { const ph = phase(p, t), tg = tgOf(p.tid) || {};
+    return ph === "out" ? { txt: "Walking there", next: p.outEnd } : ph === "job" ? { txt: tg.boss ? "Fighting the boss" : TGM[p.tid] || CPM[p.tid] ? "In the dungeon" : "On the job", next: p.jobEnd } : { txt: "Walking home", next: p.end }; };
+  let lastK = "", lastY = null, raf = 0;
+  const btn = () => document.getElementById("march");
+  function ensure() { let b = btn(); if (!b) { b = document.createElement("button"); b.id = "march"; b.dataset.act = "marOpen"; b.hidden = true; b.innerHTML = `<span class="mi">${ICON}</span><span class="mb" id="marN">1</span><span class="mt" id="marT"></span>`; document.body.appendChild(b); } return b; }
+  const canShow = () => S && TAB === "map" && !!SC && $("#sheet").hidden && $("#a2hs").hidden && $("#boot").hidden;
+  function sync(t) {
+    t = t || (S ? now() : 0); const b = ensure(), L = out(t), on = !!L.length && canShow();
+    b.hidden = !on; if (!on) return;
+    $("#marN").textContent = L.length; b.setAttribute("aria-label", `March times: ${L.length} part${L.length === 1 ? "y" : "ies"} out`);
+    time(t); place();
+  }
+  function time(t) { const b = btn(); if (!b || b.hidden) return; const L = out(t); if (!L.length) return sync(t); const m = $("#marT"); if (m) m.textContent = short(L[0].end - t); place(); } // place: a banner or label may have come or gone
+  // a free spot on the right edge: the middle first, then a step up/down at a time
+  const KEY = ".tg,#tg-boss:not([hidden]),.bldm,[id^=pin-],.cartm,#vilBtn,#banners .bn,.gatebub,#jobs,.jobs,[data-act=sendSel],[data-act=sendGo]";
+  function place() {
+    const b = btn(); if (!b || b.hidden) return; const top = Math.round($("#topwrap").getBoundingClientRect().bottom), bot = Math.round($("#nav").getBoundingClientRect().top), m = 6;
+    const R = [...document.querySelectorAll(KEY)].map(e => e.getBoundingClientRect()).filter(r => r.width && r.height);
+    const x0 = innerWidth - 6 - (b.offsetWidth || 54) - 4, x1 = innerWidth;
+    const over = (y, h) => R.reduce((a, r) => a + (r.right > x0 && r.left < x1 && r.bottom > y - 3 && r.top < y + h + 3 ? Math.min(r.bottom, y + h + 3) - Math.max(r.top, y - 3) : 0), 0);
+    const find = h => { const mid = Math.round((top + bot) / 2 - h / 2); for (let i = 0; i < 400; i++) { const y = mid + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 3; if (Math.abs(y - mid) > bot - top) break; if (y < top + m || y + h > bot - m) continue; if (!over(y, h)) return y; } return null; };
+    b.classList.remove("tight"); let h = b.offsetHeight || 54, y = find(h);
+    if (y == null) { b.classList.add("tight"); h = b.offsetHeight || 40; y = find(h); } // no room: the compact form (icon and count only)
+    if (y == null) { let bestO = Infinity; for (let yy = top + m; yy + h <= bot - m; yy += 3) { const o = over(yy, h); if (o < bestO) { bestO = o; y = yy; } } if (y == null) y = top + m; } // least covered spot
+    if (y !== lastY) { b.style.top = y + "px"; lastY = y; }
+  }
+  const placeSoon = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; place(); }); };
+  function html(t) {
+    const L = out(t); let h = `<button class="sx" data-act="close" aria-label="Close">✕</button><h3>${IC.boot} March times</h3>`;
+    if (!L.length) h += `<p class="small">No parties out right now.</p>`;
+    h += `<div class="btns" style="margin:0 0 8px"><button class="alt" data-act="tripsOpen" id="tripsBtnM">📜 Recent trips</button></div>`;
+    for (const p of L) { const tg = tgOf(p.tid) || { name: "?", ic: "❔" }, names = p.members.map(hero).filter(Boolean).map(x => x.name), st = stage(p, t);
+      h += `<button class="mrow" data-act="marGo" data-p="${p.id}"><span class="mic" aria-hidden="true">${tg.ic || "❔"}</span><span class="grow"><span class="mn">${esc(whoTxt(names))} · ${esc(tg.name)}</span><span class="ms">${st.txt} · <b data-cend="${st.next}">${fmtCL(st.next - t)}</b></span></span><span class="mtot">Home in<br><b data-cend="${p.end}">${fmtCL(p.end - t)}</b></span></button>`; }
+    const UL = (S.ups || []).filter(u => BLD[u.b]).sort((a, c) => a.end - c.end); if (UL.length) h += `<h4>${IC.hammer} Building</h4>`;
+    for (const U of UL) { const n = (S.b[U.b] || 0) + 1, rd = U.end <= t; h += `<button class="mrow" data-act="marGo" data-b="${U.b}"><span class="mic" aria-hidden="true">🏗️</span><span class="grow"><span class="mn">${esc(BLD[U.b])} → level ${n}</span><span class="ms">${rd ? "Done · tap to finish" : "Upgrading"}</span></span><span class="mtot">${rd ? "" : `Done in<br><b data-cend="${U.end}">${fmtCL(U.end - t)}</b>`}</span></button>`; }
+    return h;
+  }
+  const kOf = t => out(t).map(p => p.id + phase(p, t)).join(",") + "|" + (S.ups || []).map(u => u.b + u.end + (u.end <= t ? "r" : "")).join(",");
+  function open() { const t = now(); lastK = kOf(t); openSheet(html(t), "march"); const bx = $("#sheet .box"); if (bx) bx.classList.add("mbox"); }
+  function refresh(t) { if (kOf(t) === lastK) return; const bx = $("#sheet .box"), st = bx ? bx.scrollTop : 0; open(); const b2 = $("#sheet .box"); if (b2) b2.scrollTop = st; }
+  function go(d) {
+    if (d.b) { closeSheet(); if (TAB !== "town") { TAB = "town"; render(); } openBld(d.b); return; }
+    const p = S.parties.find(q => q.id === +d.p); closeSheet(); if (!p) return;
+    if (TAB !== "map") { TAB = "map"; render(); }
+    requestAnimationFrame(() => { if (!SC) return; const w = SC.walk[p.id], t = now(); let x = null, y = null;
+      if (w && phase(p, t) !== "job" && w.els[0]) { const r = w.els[0].getBoundingClientRect(), v = vpEl().getBoundingClientRect(); x = r.left - v.left + vpEl().scrollLeft + r.width / 2; y = r.top - v.top + vpEl().scrollTop + r.height / 2; }
+      else { const e = document.getElementById("tg-" + p.tid) || document.getElementById("pin-" + p.tid); if (e) { const r = e.getBoundingClientRect(), v = vpEl().getBoundingClientRect(); x = r.left - v.left + vpEl().scrollLeft + r.width / 2; y = r.top - v.top + vpEl().scrollTop + r.height / 2; e.classList.remove("pulse"); void e.offsetWidth; e.classList.add("pulse"); setTimeout(() => e.classList.remove("pulse"), 3200); } }
+      if (x != null) camOn(x, y, 400); });
+  }
+  addEventListener("resize", placeSoon);
+  document.addEventListener("scroll", e => { if (e.target && e.target.id === "vp") placeSoon(); }, { passive: true, capture: true });
+  return { sync, time, place, open, refresh, go, out, stage, short };
+})();
+// ---------- rc6.4.2: the one-time notifications card at first launch ----------
+// Asked once ever on this phone (localStorage "afktown.npask"; per phone, like the permission itself, so a save code moved to
+// another phone asks there too, and saves from older patches count as not asked). Shown only when nothing else is up (loading
+// screen, Add-to-Home-Screen page, a report, a sheet, a first-tap tip), so it never covers the start. On iOS in a plain Safari
+// tab push can't work: no ask, it waits for the first launch from the Home Screen icon. Already allowed/blocked, or no push in
+// this browser: no card. Allow = the same path as the Settings switch (which then shows on); Not now (or tapping outside) =
+// nothing, the switch stays in Settings.
+const NPA_KEY = "afktown.npask";
+const NPA = (() => {
+  let memAsked = false, shown = false;
+  const asked = () => { try { return memAsked || localStorage.getItem(NPA_KEY) === "1"; } catch (e) { return memAsked; } };
+  const mark = () => { memAsked = true; try { localStorage.setItem(NPA_KEY, "1"); } catch (e) { } };
+  const free = () => LIVE && S && $("#boot").hidden && $("#a2hs").hidden && $("#sheet").hidden && !document.getElementById("tip") && !document.hidden && (!$("#gate") || $("#gate").hidden);
+  function check() {
+    if (shown || asked() || (TEST && !/[?&]npask\b/.test(location.search))) return false;
+    if (PUSH.askable() !== "yes" || !free()) return false;
+    shown = true; mark();
+    openSheet(`<div class="npask"><div class="npic" aria-hidden="true">🔔</div><h3>Get notified when heroes return and buildings finish?</h3>
+      <p class="small">We'll send a notification when your heroes get home or a building upgrade is done, even with the game closed. You can change this any time in Settings.</p>
+      <div class="row npbtns"><button class="alt" data-act="npNo" id="npNo">Not now</button><button class="go" data-act="npYes" id="npYes">Allow</button></div></div>`, "npask");
+    return true;
+  }
+  return { check, asked, get shown() { return shown; }, reset() { memAsked = false; shown = false; try { localStorage.removeItem(NPA_KEY); } catch (e) { } } };
+})();
+window.addEventListener("online", () => PUSH.resync("online"));
+document.addEventListener("visibilitychange", () => { if (!document.hidden) PUSH.resync("front"); });
+window.addEventListener("focus", () => PUSH.resync("front"));
 const STANDALONE = (window.matchMedia && (matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches)) || navigator.standalone === true;
 document.documentElement.classList.toggle("tab", !STANDALONE);
 // host pill clearance (DESIGN 15): Netlify's "Powered by Netlify" pill (192x64, bottom right) shows in a tab AND from the
@@ -3522,6 +3770,7 @@ function enterGame(netFail) {
     if (prev && pcmp(prev, MYPATCH) < 0) toast(`Updated to Patch ${MYPATCH}`);
     if (netFail) { const nb = $("#netBanner"); nb.hidden = false; setTimeout(() => nb.hidden = true, 5000); }
     setInterval(tick, 1000);
+    setTimeout(() => NPA.check(), 600); // rc6.4.2: right after the town shows, if nothing else is up
     requestAnimationFrame(rafLoop);
   };
   if (resetNote) { $("#bootChk").hidden = true; const n = $("#bootNote"); n.textContent = resetNote; n.hidden = false; setTimeout(go, 3500); }
@@ -3587,7 +3836,7 @@ bootCheck();
 if ("serviceWorker" in navigator && window.isSecureContext && !(TEST && QS.has("nosw"))) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(() => PUSH.sync()).catch(() => { }); });
 }
-window.TOWN = TEST ? { PUSH,  v64: { wbOpen, cpCan, cpWinnable, cpTarget, CP, CPM, CP_CH, cpOpen, cpNext, cpGold, cpTier, cpRuleWhy, cpCleared }, v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
+window.TOWN = TEST ? { PUSH, NPA, MAR,  v64: { wbOpen, cpCan, cpWinnable, cpTarget, CP, CPM, CP_CH, cpOpen, cpNext, cpGold, cpTier, cpRuleWhy, cpCleared }, v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, WATER_TAPS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
 </script>
 </body>
 </html>
