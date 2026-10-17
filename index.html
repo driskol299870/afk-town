@@ -442,6 +442,18 @@ html.clear nav{bottom:80px;border-bottom:2.5px solid var(--ink)}
 html.clear body:after{content:"";position:fixed;left:0;right:0;bottom:0;height:80px;background:#3a2a1f;z-index:6}
 html.clear .sheet .box{padding-bottom:calc(18px + 80px + env(safe-area-inset-bottom))}
 html.clear #toast{bottom:176px}
+/* rc6.5: rarity colors (Common grey, Uncommon green, Rare blue, Epic purple, Legendary orange) wherever gear shows */
+.rar{font-weight:900}.rar.r-common{color:#6b7178}.rar.r-uncommon{color:#25883a}.rar.r-rare{color:#2462c4}.rar.r-epic{color:#8338cc}.rar.r-legendary{color:#d9630a}
+.wpic[data-rar]{border-radius:6px}.wpic[data-rar=common]{box-shadow:inset 0 -3px 0 #8f969e}.wpic[data-rar=uncommon]{box-shadow:inset 0 -3px 0 #2f9e44}.wpic[data-rar=rare]{box-shadow:inset 0 -3px 0 #2f6fd0}.wpic[data-rar=epic]{box-shadow:inset 0 -3px 0 #8e44d6}.wpic[data-rar=legendary]{box-shadow:inset 0 -3px 0 #e8700a}
+.tile:has(.wpic[data-rar=uncommon]),.tile:has(.armic[data-rar=uncommon]){border-color:#2f9e44}.tile:has(.wpic[data-rar=rare]),.tile:has(.armic[data-rar=rare]){border-color:#2f6fd0}.tile:has(.wpic[data-rar=epic]),.tile:has(.armic[data-rar=epic]){border-color:#8e44d6}.tile:has(.wpic[data-rar=legendary]),.tile:has(.armic[data-rar=legendary]){border-color:#e8700a}
+.tile.other{border-color:var(--ink)}
+.armic{display:inline-flex;align-items:center;justify-content:center;width:22px;height:40px;flex:none;border-radius:6px}.armic.big{width:28px;height:44px}.armic svg{width:22px;height:22px}
+.armic[data-rar=common]{background:#eceef0}.armic[data-rar=uncommon]{background:#d9f2de}.armic[data-rar=rare]{background:#dbe7fb}.armic[data-rar=epic]{background:#efe0fb}.armic[data-rar=legendary]{background:#fde6cf}
+.matrow{flex-wrap:wrap;gap:4px 12px;margin:6px 0}.matno{color:#c0392b;font-weight:900}.craftrow .go{flex:none}.craftrow .grow{min-width:0}
+.snapcard{margin-top:8px}.snaph .mini{flex:none}.raidlog,.raidres{margin:2px 0}.jt{font-size:10px;font-weight:900;margin-left:1px;font-variant-numeric:tabular-nums}
+.trm{white-space:nowrap}
+.ideabtn{flex:none;display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border:2.5px solid var(--ink);border-radius:12px;background:#fff7c2;color:var(--ink);font-weight:900;text-decoration:none;box-shadow:0 3px 0 var(--ink);white-space:nowrap}.setrow.ideas{flex-wrap:wrap}.crft{font-size:11px;font-weight:800;padding:0 4px;border:1.5px solid var(--ink);border-radius:6px;background:#efe6d2;white-space:nowrap}.mailtxt{flex:1 0 100%;margin-top:4px}#ideasAddr{font-weight:800;white-space:nowrap;user-select:all;-webkit-user-select:all}
+#strip button.j-raid{width:auto;min-width:44px;padding:0 6px;gap:2px;background:#ffe3e0}
 </style>
 </head>
 <body>
@@ -469,7 +481,7 @@ html.clear #toast{bottom:176px}
 "use strict";
 const KEY = "afktown.save", MIN = 60e3, HR = 3600e3, SEC = 1e3;
 const TEST = /[?&]test(=|&|$)/.test(location.search);
-const BUILD = "rc6.4.2"; // the build tag on the Town screen; bump it each build
+const BUILD = "rc6.5"; // the build tag on the Town screen; bump it each build
 // ---------- sound and music (DESIGN 20, rc5.6): everything is made here in code with Web Audio. No files, no samples. ----------
 // rc5.8.2 (mark 69): music is on by default and fades in as the town shows; if the browser blocks audio it starts on the
 // first gesture of any kind (no prompt). Mute wins and lives in localStorage on this phone only (never in the save or the save code).
@@ -731,11 +743,16 @@ const TIERS = {
 };
 const TIER_KEYS = Object.keys(TIERS);
 // class weapons (DESIGN 28): a spare weapon is "tier:class" (e.g. "iron:archer"); an equipped weapon is just its tier, of its wearer's class
-const wT = w => String(w).split(":")[0], wC = w => String(w).split(":")[1] || null, wOf = (t, k) => t + ":" + k;
+const wT = w => String(w).split(":")[0], wC = w => String(w).split(":")[1] || null, wOf = (t, k, cr) => t + ":" + k + (cr ? ":c" : "");
+// rc6.5: a crafted spare carries its own mark, "tier:class:c" (an equipped one: hero.wcr = 1). Crafted gear always sells for 0 gold,
+// never fills the Weapons collection, and anything forged from a crafted input is crafted too, so the mark can't be traded away.
+const wCr = w => String(w).split(":")[2] === "c";
 const wBon = w => (TIERS[wT(w)] || TIERS.rusty).bonus;
 const wName = w => (TIERS[wT(w)] || TIERS.rusty).name + (wC(w) && CLS[wC(w)] ? " " + CLS[wC(w)].wname : " weapon");
 const CLS_PL = { warrior: "Warriors", archer: "Archers", healer: "Healers", rogue: "Rogues", knight: "Knights", necro: "Necromancers" };
-const bestOfCls = (k, list) => { let b = null; for (const w of list || S.weapons) if (wC(w) === k && (!b || wBon(w) > wBon(b) || (wBon(w) === wBon(b) && TIERS[wT(w)].sell > TIERS[wT(b)].sell))) b = w; return b; };
+const bestOfCls = (k, list) => { let b = null; for (const w of list || S.weapons) if (wC(w) === k && (!b || wBon(w) > wBon(b) || (wBon(w) === wBon(b) && (TIERS[wT(w)].sell > TIERS[wT(b)].sell || (TIERS[wT(w)].sell === TIERS[wT(b)].sell && wCr(w) && !wCr(b)))))) b = w; return b; }; // equal: wear the crafted copy, keep the sellable one
+const takeW = (tk, k) => { const i = S.weapons.indexOf(wOf(tk, k, 1)); return i >= 0 ? i : S.weapons.indexOf(wOf(tk, k)); }; // rc6.5: a spare of this tier and class (the crafted copy first)
+const wearW = (h, w) => { if (h.weapon) S.weapons.push(wOf(h.weapon, h.cls, h.wcr)); h.weapon = wT(w); if (wCr(w)) h.wcr = 1; else delete h.wcr; }; // the old one goes back to stores with its mark
 // the class build (DESIGN 6): 2 start classes, 4 more open with hall levels 2 to 5. Each edge counts once per party.
 const CLS = {
   warrior: { name: "Warrior", color: "#e5484d", wname: "Sword", edge: "+5 power", unlock: 1 },
@@ -932,7 +949,7 @@ function wpnPart(cls, t) {
   if (cls === "rogue") return daggerP(t, 86, 104, -24) + daggerP(t, 16, 104, 22);
   return "";
 }
-const wpnSVG = (cls, tier) => `<svg class="wpic" viewBox="60 20 48 104" xmlns="http://www.w3.org/2000/svg">${paint(wpnPart(cls, wT(tier)))}</svg>`;
+const wpnSVG = (cls, tier) => `<svg class="wpic" data-rar="${T2R[wT(tier)] || "common"}" viewBox="60 20 48 104" xmlns="http://www.w3.org/2000/svg">${paint(wpnPart(cls, wT(tier)))}</svg>`;
 // ---- portrait: the same painting, head and shoulders, framed on parchment (the frame is CSS) ----
 function heroSVG(cls, seed, weapon) {
   const L = looks(cls, seed), { sk, ex } = L;
@@ -1367,7 +1384,7 @@ const isKO = (h, t) => h.koEnd > t;
 const onEv = id => !!(S.tev && S.tev.run && S.tev.run.members.includes(id));
 const inYard = id => !!(S.yard && S.yard.s.some(y => y.h === id));
 const avail = (h, t) => h && !inParty(h.id) && !isKO(h, t) && !inYard(h.id) && !onEv(h.id); // rc6.3.2: a hero at a town event is busy too; rc6.3.1: a hero in the training yard can't be sent until taken out
-const busy = tid => S.parties.some(p => p.tid === tid);
+const busy = tid => S.parties.some(p => p.tid === tid) || !!(S.ghost && S.ghost.tid === tid); // rc6.5: a snapshot party holds its mission too
 const capMs = () => (24 + S.b.hall - 1) * HR + PR_CAP * prN();
 const recovMs = () => Math.round(REC_H[S.b.infirmary - 1] * HR * (1 - .03 * vLvlAt("infirmary"))); // rc6.3 (34): a healer villager cuts 3% per villager level
 const carries = (h, k) => h.supply && h.supply.k === k && h.supply.n > 0;
@@ -1383,7 +1400,7 @@ const upReadyB = (b, t) => { const u = upOf(b); return !!(u && u.end <= t); };
 const upReady = t => (S.ups || []).some(u => u.end <= t);
 // power = 10 + 5 x equipped class rank + weapon + the hero's own power edge (DESIGN 4 and 6)
 const EDGE_PW = { warrior: 5, knight: 3 };
-const basePow = h => 10 + 5 * h.lvl + (h.weapon ? TIERS[h.weapon].bonus : 0);
+const basePow = h => 10 + 5 * h.lvl + (h.weapon ? TIERS[h.weapon].bonus : 0) + armB(h); // rc6.5: + armor
 function power(h) { return basePow(h) + (EDGE_PW[h.cls] || 0); }
 const hasCls = (mem, k) => mem.some(h => h.cls === k);
 const offClass = h => !!(h.start && h.cls !== h.start);
@@ -1458,6 +1475,7 @@ function launch(tid, ids, T) {
   if (!tg.boss) { const rc = mem.find(h => carries(h, "ration")); if (rc) useSupply(rc);
   const pc = mem.find(h => carries(h, "potion")); if (pc) useSupply(pc); } // the boss uses no items
   S.parties.push({ id: S.nextId++, tid, members: mem.map(h => h.id), start: T, outEnd: T + P.w, jobEnd: T + P.w + P.j, end: T + P.total, fail, ...(pay < 1 ? { pay } : {}), ...(tg.boss ? { wk: S.boss.wk, dmg: partyPow(mem) * WB_DMG } : {}) }); // a trip keeps the time and pay it was sent with
+  snapTake(S.parties[S.parties.length - 1], mem); // rc6.5: the last party sent, as they left
   return true;
 }
 function addXP(h, x) {
@@ -1494,6 +1512,7 @@ function ret(p) {
       if (tg.wpn && Math.random() < tg.wpn.p * dm * pk) { ev.wpn = wOf(pickMix(tg.wpn.mix), mem[Math.floor(Math.random() * mem.length)].cls); to.weapons.push(ev.wpn); } // kind = a random party member's class (DESIGN 28)
       if (tg.pot && Math.random() < tg.pot * dm * pk) { ev.pot = 1; to.potions++; }
       if (tg.rat && Math.random() < tg.rat) { ev.rat = 1; to.rations = (to.rations || 0) + 1; }
+      const mo = matRoll(tg, mem); if (mo) { matAdd(mo); ev.mat = mo; } // rc6.5: materials go straight to stores (not gold, so not the bank)
     }
   }
   let rest = mem;
@@ -1520,6 +1539,7 @@ function ret(p) {
 function process(t) {
   if (S && (S.up !== undefined || !Array.isArray(S.ups))) upNorm(S); // rc6.4.2: an old single upgrade (or a test setting S.up)
   gobSync(t); choreSync(t); townSync(t);
+  if (S.raid) S.raid.last = Math.max(S.raid.last || 0, t - RAID_KEEP - HR); // rc6.5: forward-only, never a backlog older than a day
   let n = 0;
   for (const p of S.parties) if (p.outEnd <= t && !ARR.has(p.id)) { ARR.add(p.id); if (LIVE && !document.hidden) BN.arrived(p); }
   if (!S.pinClock) S.pinClock = t;
@@ -1530,10 +1550,15 @@ function process(t) {
     if (be <= t && (!best || be <= best.end)) { wbFinish(be); n++; continue; }
     const pinAt = S.pinClock + HR;
     if (pinAt <= t && (!best || pinAt <= best.end)) { S.pinClock = pinAt; if (spawnPin()) n++; continue; }
+    const ge = S.ghost ? S.ghost.end : Infinity; // rc6.5: the snapshot party comes home in time order too
+    if (ge <= t && (!best || ge <= best.end)) { ghostRet(); n++; continue; }
+    const rd = raidDue(t); // rc6.5: a raid lands in time order: the heroes home at that moment fight
+    if (rd && (!best || rd.at <= best.end)) { n += raidRun(rd, t); continue; }
     if (!best) break;
     ret(best); n++;
   }
   n += wbStart(t);
+  if (S.raid) raidSync(t);
   AUD.flush();
   return n;
 }
@@ -1551,7 +1576,8 @@ function equipNeed(h) {
   if (!h || inParty(h.id)) return null;
   const bw = bestStoreW(h.cls), w = bw && wBon(bw) > (h.weapon ? TIERS[h.weapon].bonus : -1) ? bw : null;
   const sup = !h.supply && (S.potions > 0 || S.rations > 0) ? (S.potions > 0 ? "potion" : "ration") : null;
-  return w || sup ? { w, sup } : null;
+  const ba = (S.armor || []).reduce((b, r) => !b || ARM_B[r] > ARM_B[b] ? r : b, null), a = ba && ARM_B[ba] > armB(h) ? ba : null; // rc6.5: armor, any class
+  return w || sup || a ? { w, sup, a } : null;
 }
 // the to-do strip: one icon per waiting job (section 19). Tapping jumps to the job, never does it.
 function jobs(t) {
@@ -1566,6 +1592,7 @@ function jobs(t) {
   { const n = btyReady(); if (n) J.push({ k: "bounty", n }); }
   if (merOn(t) && !S.mer.bought) J.push({ k: "cart" });
   if (tevOn(t)) J.push({ k: "event" }); // rc6.4: a town event is live
+  if (S.raid && raidWarn(t)) J.push({ k: "raid" }); // rc6.5: raiders on the way (the countdown is in the button)
   return J;
 }
 
@@ -1623,8 +1650,8 @@ const BN = {
       else BN.add("ko", IC.cross, `The run at ${ev.name} went badly.`);
       return;
     }
-    const drops = [ev.pot ? "Potion" : "", ev.rat ? "Ration" : "", ev.wpn ? wName(ev.wpn) : ""].filter(Boolean);
-    let t = `${whoTxt(ev.names)} ${ev.names.length === 1 ? "is" : "are"} home from ${ev.name}. Success: ${num(ev.gold)} gold, ${ev.xp} XP.`;
+    const drops = [ev.pot ? "Potion" : "", ev.rat ? "Ration" : "", ev.wpn ? wTxt(ev.wpn) : "", ev.mat ? matWords(ev.mat) : ""].filter(Boolean);
+    let t = ev.snap ? `Snapshot party cleared ${ev.name}! +${num(ev.gold)} gold.` : `${whoTxt(ev.names)} ${ev.names.length === 1 ? "is" : "are"} home from ${ev.name}. Success: ${num(ev.gold)} gold, ${ev.xp} XP.`;
     if (drops.length) t += ` Found: ${drops.join(", ")}.`;
     if (ev.full) t += " Bank full: the loot waits at the gate.";
     // rc5.8.1: off-class XP and rank-ups are their own short reports, right behind the Returned one
@@ -1743,7 +1770,7 @@ const A = {
     for (const gt of gateLoot()) { const L = gt.loot; S.bank.gold += L.gold; S.bank.potions += L.potions; S.bank.rations = (S.bank.rations || 0) + (L.rations || 0); S.bank.weapons.push(...L.weapons); gt.loot = null; }
     for (const gt of S.gate) if (gt.reason === "Bank full") gt.reason = "Back home";
     S.gate = S.gate.filter(g => g.members.length);
-    const g = Math.round(S.bank.gold * (1 + .05 * (S.b.bank - 1))), np = S.bank.potions, nr = S.bank.rations || 0, nw = S.bank.weapons.length, from = (S.bank.from || []).concat(lootFrom.filter(x => !(S.bank.from || []).includes(x))), wn = S.bank.weapons.map(w => wName(w));
+    const g = Math.round(S.bank.gold * (1 + .05 * (S.b.bank - 1))), np = S.bank.potions, nr = S.bank.rations || 0, nw = S.bank.weapons.filter(w => !wCr(w)).length /* rc6.5: a crafted forge result alone doesn't make a Collect bounty */, from = (S.bank.from || []).concat(lootFrom.filter(x => !(S.bank.from || []).includes(x))), wn = S.bank.weapons.map(w => wTxt(w));
     if (g || np || nr || nw) btyAdd("collect");
     S.gold += g; S.potions += np; S.rations += nr; S.weapons.push(...S.bank.weapons); for (const k of ["bakery", "garden"]) if (S.work[k]) S.work[k].n = 0; // rc6.3: each building can make 10 again
     S.bank = { gold: 0, potions: 0, rations: 0, weapons: [], from: [] }; S.lastCollect = t;
@@ -1773,6 +1800,7 @@ const A = {
     else if (k === "sword") openPanel(+d.h);
     else if (k === "gift" || k === "broom") { if (TAB !== "town") { TAB = "town"; closeSheet(); render(); } else closeSheet(); const el = $(k === "gift" ? "#dailyCard" : "#choreCard"); if (el) { el.scrollIntoView({ block: "center" }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } } // jumps, never does it (19)
     else if (k === "event") { closeSheet(); openTev([]); }
+    else if (k === "raid") { closeSheet(); openRaid(); }
     else if (k === "bounty" || k === "cart") { if (TAB !== "town") { TAB = "town"; closeSheet(); render(); } else closeSheet(); const el = $(k === "bounty" ? "#btyCard" : "#merCard"); if (el) { el.scrollIntoView({ block: "center" }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } }
     else if (k === "pin") { if (TAB !== "map") { TAB = "map"; closeSheet(); render(); } else closeSheet(); jumpPin(d.p); }
   },
@@ -1835,8 +1863,8 @@ const A = {
   // bag weapon tap: wear it, the old one goes back to the bag (DESIGN 25). Free. Never leaves the hand empty.
   bagW(d) {
     const h = hero(+d.h); if (!h || inParty(h.id)) return;
-    const i = S.weapons.indexOf(wOf(d.w, h.cls)); if (i < 0) return; // only this hero's class
-    S.weapons.splice(i, 1); if (h.weapon) S.weapons.push(wOf(h.weapon, h.cls)); h.weapon = d.w; commit();
+    const i = takeW(wT(d.w), h.cls); if (i < 0) return; // only this hero's class
+    const w = S.weapons.splice(i, 1)[0]; wearW(h, w); commit();
   },
   // bag Potion/Ration tap: fill the supply slot to 5 of that kind; the other kind goes back to the bag
   bagS(d) {
@@ -1851,15 +1879,16 @@ const A = {
   wornS(d) { const h = hero(+d.h); if (!h || inParty(h.id) || !h.supply) return; S[h.supply.k === "potion" ? "potions" : "rations"] += h.supply.n; h.supply = null; commit(); },
   equipW(d) {
     const h = hero(+d.h); if (!h || inParty(h.id)) return;
-    const i = S.weapons.indexOf(wOf(wT(d.w), h.cls)); if (i < 0) return;
-    S.weapons.splice(i, 1); if (h.weapon) S.weapons.push(wOf(h.weapon, h.cls)); h.weapon = wT(d.w); closeSheet(); commit();
+    const i = wC(d.w) === h.cls && S.weapons.includes(d.w) ? S.weapons.indexOf(d.w) : takeW(wT(d.w), h.cls); if (i < 0) return;
+    const w = S.weapons.splice(i, 1)[0]; wearW(h, w); closeSheet(); commit();
   },
   // one tap per hero: best weapon from stores if it beats theirs, plus 1 Potion (or Ration) if they carry nothing
   equipBest(d) {
     const h = hero(+d.h), q = equipNeed(h); if (!q) return;
     const got = [];
-    if (q.w) { S.weapons.splice(S.weapons.indexOf(q.w), 1); if (h.weapon) S.weapons.push(wOf(h.weapon, h.cls)); h.weapon = wT(q.w); got.push(TIERS[h.weapon].name + " " + CLS[h.cls].wname); }
+    if (q.w) { S.weapons.splice(S.weapons.indexOf(q.w), 1); wearW(h, q.w); got.push(TIERS[h.weapon].name + " " + CLS[h.cls].wname); }
     if (q.sup) { const pool = q.sup === "potion" ? "potions" : "rations"; S[pool]--; h.supply = { k: q.sup, n: 1 }; got.push("1 " + (q.sup === "potion" ? "Potion" : "Ration")); }
+    if (q.a) { S.armor.splice(S.armor.indexOf(q.a), 1); if (h.armor) S.armor.push(h.armor); h.armor = q.a; got.push(aName(q.a)); }
     save(); render();
     toast(`${h.name}: ${got.join(" + ")}`);
   },
@@ -1871,7 +1900,8 @@ const A = {
   retireKeep() { closeSheet(); },
   retireGo(d) {
     const h = hero(+d.h); if (!h || inParty(h.id)) return closeSheet();
-    if (h.weapon) S.weapons.push(wOf(h.weapon, h.cls));
+    if (h.weapon) S.weapons.push(wOf(h.weapon, h.cls, h.wcr));
+    if (h.armor) S.armor.push(h.armor); // rc6.5
     if (h.supply) S[h.supply.k === "potion" ? "potions" : "rations"] += h.supply.n;
     S.heroes = S.heroes.filter(x => x !== h);
     S.gate.forEach(g => g.members = g.members.filter(id => id !== h.id)); S.gate = S.gate.filter(g => g.members.length || g.loot);
@@ -1909,7 +1939,7 @@ const A = {
   buyW(d) {
     const T = TIERS[d.w], k = d.c && CLS[d.c] ? d.c : shopCls(); if (!T || !T.price || S.b.shop < T.shop || !clsOpen(k)) return;
     const c = shopPrice(T.price); if (S.gold < c) return toast("Not enough gold.");
-    S.gold -= c; S.weapons.push(wOf(d.w, k)); btyAdd("buy"); commit(); toast(`Bought ${/^[AEIOU]/.test(T.name) ? "an" : "a"} ${T.name} ${CLS[k].wname}.`);
+    S.gold -= c; S.weapons.push(wOf(d.w, k)); btyAdd("buy"); commit(); toast(`Bought ${/^[AEIOU]/.test(T.name) ? "an" : "a"} ${T.name} ${CLS[k].wname} (${RAR[T2R[d.w]].n}).`);
   },
   buyS(d) {
     const k = d.k, c = shopPrice(k === "potion" ? POTION_PRICE : RATION_PRICE); if (S.gold < c) return toast("Not enough gold.");
@@ -1919,16 +1949,27 @@ const A = {
   vilSet(d) { if (!vilSet(+d.v, d.b)) return; const v = S.vil.find(x => x.id === +d.v); commit(); if (sheetKind && sheetKind.startsWith("vil:")) closeSheet(); else reopen(); toast(`${v.name} now works at the ${BLD[d.b].toLowerCase()}.`); },
   vilFree(d) { const t = now(); process(t); const v = S.vil.find(x => x.id === +d.v); if (!v) return; v.at = null; commit(); if (sheetKind && sheetKind.startsWith("vil:")) openVil(v.id); else reopen(); },
   forge(d) {
-    const t = now(); process(t); if (S.work.forge || !vAt("smithy")) return; const o = forgeOpts().find(x => x.w === d.w); if (!o) return;
-    for (let i = 0; i < 3; i++) S.weapons.splice(S.weapons.indexOf(o.w), 1);
-    S.work.forge = { in: o.w, out: o.out, start: t, end: t + forgeMs() }; btyAdd("forge"); commit(); reopen(); toast(`Forging ${wName(o.out)}.`);
+    const t = now(); process(t); if (smithBusy() || !vAt("smithy")) return; const o = forgeOpts().find(x => x.w === d.w); if (!o) return;
+    let cr = false; for (let i = 0; i < 3; i++) { let j = S.weapons.indexOf(o.w); if (j < 0) { j = S.weapons.indexOf(wOf(wT(o.w), wC(o.w), 1)); cr = true; } S.weapons.splice(j, 1); } // looted copies first
+    const out = wOf(wT(o.out), wC(o.out), cr); // rc6.5: any crafted input makes a crafted result
+    S.work.forge = { in: o.w, out, start: t, end: t + forgeMs() }; if (!cr) btyAdd("forge"); commit(); // rc6.5: a forge with any crafted input counts toward nothing (no bounty) reopen(); toast(`Forging ${wTxt(out)}${cr ? ". Crafted gear went in, so it counts for no bounty" : ""}.`);
   },
   btyClaim(d) { const t = now(); process(t); const g = S.bty.g[+d.i]; if (!g || g.got || g.c < BTY[g.k].n) return; const p = btyPay(1, t); g.got = 1; S.gold += p; AUD.cue("loot"); commit(); reopen(); toast(`Bounty paid: +${num(p)} gold`); },
   btyBonus() { const t = now(); process(t); if (S.bty.bonus || !S.bty.g.length || !S.bty.g.every(g => g.got)) return; const p = btyPay(2, t); S.bty.bonus = 1; S.gold += p; S.potions++; AUD.cue("claim"); commit(); reopen(); toast(`All bounties done: +${num(p)} gold and 1 Potion`); },
   merOpen() { if (TAB !== "town") { TAB = "town"; closeSheet(); render(); } const el = $("#merCard"); if (el) { el.scrollIntoView({ block: "center" }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } },
   merBuy() { const t = now(); process(t); if (!merOn(t) || S.mer.bought) return; const it = S.mer.item; if (S.gold < it.price) return toast("Not enough gold.");
     S.gold -= it.price; if (it.k === "w") S.weapons.push(it.w); else S[it.k] += it.n; S.mer.bought = 1; (S.mer.boughtKeys = S.mer.boughtKeys || []).includes(S.mer.key) || S.mer.boughtKeys.push(S.mer.key); btyAdd("buy"); commit(); toast(`Bought ${merName(it)}.`); },
-  sellW(d) { const i = S.weapons.indexOf(d.w); if (i < 0) return; S.weapons.splice(i, 1); S.gold += TIERS[wT(d.w)].sell; commit(); }, // a Starter sells for 0
+  // rc6.5: materials, crafting, armor, raids, snapshot runs. Gold buys only materials here, never time.
+  buyM(d) { const k = d.k, n = Math.max(1, Math.min(5, Math.floor(+d.n) || 1)); if (!MAT_PRICE[k]) return; const c = n * shopPrice(MAT_PRICE[k]); if (S.gold < c) return toast("Not enough gold."); S.gold -= c; matAdd({ [k]: n }); btyAdd("buy"); commit(); toast(`Bought ${n} ${MAT[k].n}.`); },
+  craftK(d) { CRAFTK = d.k === "armor" ? "armor" : "weapon"; reopen(); },
+  craftC(d) { if (CLS[d.c]) CRAFTC = d.c; reopen(); },
+  craft(d) { const t = now(); process(t); const why = craftStart(d.k, d.r, d.c, t); if (why) return toast(why); commit(); /* crafting is not a forge: no bounty */ reopen(); const C = S.work.craft; toast(`Crafting ${art(RAR[C.r].n)} ${craftOut(C)} (${RAR[C.r].n}). Ready in ${fmtC(C.end - C.start)}.`); },
+  bagA(d) { const h = hero(+d.h); if (!h || inParty(h.id)) return; const i = S.armor.indexOf(d.a); if (i < 0) return; S.armor.splice(i, 1); if (h.armor) S.armor.push(h.armor); h.armor = d.a; commit(); },
+  wornA(d) { const h = hero(+d.h); if (!h || inParty(h.id) || !h.armor) return; S.armor.push(h.armor); h.armor = null; commit(); },
+  raidOpen() { openRaid(); },
+  snapOpen(d) { openSnap(d.m); },
+  snapGo(d) { const t = now(); process(t); const why = snapSend(d.m, t); if (why) return toast(why); commit(); AUD.cue("send"); const m = CPM[d.m]; openCamp(m.ch); toast(`The snapshot party set out for ${m.name}. Back in ${fmtC(S.ghost.end - S.ghost.start)}.`); },
+  sellW(d) { const i = S.weapons.indexOf(d.w); if (i < 0) return; const g = sellOf(d.w); S.weapons.splice(i, 1); if (wCr(d.w)) toast("Crafted gear sells for 0 gold."); S.gold += g; commit(); }, // a Starter sells for 0; rc6.5: so does crafted gear
   shopTab(d) { if (CLS[d.c] && clsOpen(d.c)) { SHOPC = d.c; render(); } },
   bagNo(d) { toast(`${CLS_PL[d.c] || "Others"} only.`); },
   nudgeOff() { S.nudgeOff = now(); commit(); },
@@ -2062,7 +2103,7 @@ const offerCost = o => recruitCost() * (o.vet ? 2 : 1);
 // No time effects of any kind: it never touches trip times, fast travel or pay. A missed event is gone.
 const TEV_KINDS = [["🛞", "A cart is stuck in the mud"], ["🐺", "Wolves at the sheep pen"], ["🧒", "A child is lost in the meadow"], ["🪣", "The well bucket fell in"], ["🐐", "A goat is on the roof"], ["🍎", "The apple tree needs picking"]];
 const TEV_JOB = 5 * MIN, TEV_HX = 0.5;
-function v64(s) { if (!s.camp || typeof s.camp !== "object") s.camp = { clr: {}, leg: 0, crown: 0 }; if (!s.camp.clr) s.camp.clr = {}; }
+function v64(s) { if (!s.camp || typeof s.camp !== "object") s.camp = { clr: {}, leg: 0, crown: 0 }; if (!s.camp.clr) s.camp.clr = {}; v65(s); }
 function v632(s) {
   if (!s.tev || typeof s.tev !== "object") s.tev = { key: "", last: 0, kind: 0, done: [], run: null };
   if (!s.col || typeof s.col !== "object") s.col = { w: {}, f: {}, v: {}, h: {}, paid: {} };
@@ -2122,8 +2163,8 @@ const COL_HX = 5;
 function colSync() {
   const C = S.col; if (!C) return;
   const addW = (tk, c) => { if (tk && tk !== "starter" && TIERS[tk] && CLS[c]) C.w[tk + ":" + c] = 1; };
-  for (const w of [...S.weapons, ...(S.bank.weapons || []), ...S.gate.flatMap(g => g.loot && g.loot.weapons || [])]) { const [tk, c] = String(w).split(":"); addW(tk, c); }
-  for (const h of S.heroes) { addW(h.weapon, h.cls); C.h[h.cls] = 1; }
+  for (const w of [...S.weapons, ...(S.bank.weapons || []), ...S.gate.flatMap(g => g.loot && g.loot.weapons || [])]) { if (wCr(w)) continue; const [tk, c] = String(w).split(":"); addW(tk, c); } // rc6.5: crafted gear doesn't count
+  for (const h of S.heroes) { if (!h.wcr) addW(h.weapon, h.cls); C.h[h.cls] = 1; }
   for (const v of S.vil || []) C.v[v.name] = 1;
 }
 const colFoe = id => { if (S.col) S.col.f[id] = 1; };
@@ -2141,7 +2182,7 @@ function openCol(pg) {
     if (pg === "f") { const T = TGM[x] || CPM[x], W = WB_LIST[+x.slice(2)]; nm = T ? T.name : W.name; ic = T ? T.ic : W.ic; }
     if (pg === "v") { ic = "🧑‍🌾"; }
     if (pg === "h") { nm = CLS[x].name; ic = `<span class="mini">${heroSVG(x, 7, "starter")}</span>`; }
-    h += `<div class="colent${got ? "" : " no"}" title="${esc(nm)}"><span class="colic">${ic}</span><span class="small">${got ? esc(nm) : "???"}</span></div>`; });
+    h += `<div class="colent${got ? "" : " no"}" title="${esc(nm)}"><span class="colic">${ic}</span><span class="small">${got ? (pg === "w" ? rarSpan(T2R[x.split(":")[0]] || "common", nm) : esc(nm)) : "???"}</span></div>`; });
   h += `</div></div><div class="btns">${done && !paid ? `<button class="go" data-act="colClaim" data-p="${pg}">Claim · ${IC.gold} ${num(btyPay(COL_HX, t))}</button>` : paid ? `<span class="pill st-home">Page complete</span>` : ""}<button class="alt" data-act="close">Close</button></div>`;
   openSheet(h, "col:" + pg);
 }
@@ -2213,13 +2254,220 @@ function openCamp(ch) {
   let h = `<h3>🗺️ Campaign</h3><div class="chips">${CP_CH.map(C => `<button class="chip ${C.n === ch ? "on" : ""}" data-act="cpCh" data-c="${C.n}">${C.n}. ${S.b.hall < C.hall ? IC.lock + " " : ""}${esc(C.name)}</button>`).join("")}</div>`;
   if (S.camp.leg === 1) h += `<div class="card" id="cpLeg" style="margin-top:8px"><b>🐲 Choose your Legendary weapon</b><div class="chips">${CLS_KEYS.map(c => `<button class="chip" data-act="cpLeg" data-c="${c}"><span class="mini">${heroSVG(c, 7, "legendary")}</span>${CLS[c].name}</button>`).join("")}</div></div>`;
   const C = CP_CH[ch - 1];
+  h += snapCard(t); // rc6.5
   h += `<div class="card cpath" style="margin-top:8px"><div class="small">Chapter ${C.n} · Hall ${C.hall} · Boss: ${C.bic} ${esc(C.bn)} · ${esc(C.unl)}</div>`;
   CP.filter(m => m.ch === ch).forEach((m, i) => { const done = cpCleared(m.id), op = cpOpen(m.id), out = busy(m.id), P = runParts([], m);
     h += `<div class="cpm${done ? " done" : ""}${op ? " open" : ""}" style="margin-left:${[0, 40, 10, 50, 20][i]}px"><div class="row"><span class="tic">${done ? "🏅" : op ? m.ic : IC.lock}</span><div class="grow"><b>${m.mi}. ${esc(m.name)}</b>${m.cpBoss ? ` <span class="pill st-ko">Boss</span>` : ""}<div class="small">${esc(m.story)}</div>
-      ${!done && !cpCan(m) ? `<div class="small rbwarn">${IC.warn.replace('width="22" height="22"', 'width="16" height="16"')} Your heroes can't make this team yet. Recruit to fill the rule.</div>` : ""}<div class="small">${m.rule.txt} · Need <b>${fistN(m.need)}</b> · ${IC.clock} ${fmtCL(P.total)} · first clear ${IC.gold} ${num(cpGold(m, t))}${m.cpBoss ? m.ch < 4 ? ` + ${TIERS[cpTier(m)].name} weapon` : " + Legendary + crown" : m.mi % 2 ? ` + 2 ${IC.potion}` : ` + 2 ${IC.ration}`}</div></div></div>
-      ${done ? `<div class="small">Cleared · can't be replayed for rewards</div>` : out ? `<div class="small">A party is on the way.</div>` : op ? `<div class="btns"><button class="go" data-act="cpGo" data-m="${m.id}">Send a party</button></div>` : S.b.hall < m.unlock ? `<div class="small">${IC.lock} Hall ${m.unlock}</div>` : `<div class="small">Clear the mission before first.</div>`}</div>`; });
+      ${!done && !cpCan(m) ? `<div class="small rbwarn">${IC.warn.replace('width="22" height="22"', 'width="16" height="16"')} Your heroes can't make this team yet. Recruit to fill the rule.</div>` : ""}<div class="small">${m.rule.txt} · Need <b>${fistN(m.need)}</b> · ${IC.clock} ${fmtCL(P.total)} · first clear ${IC.gold} ${num(cpGold(m, t))}${m.cpBoss ? m.ch < 4 ? ` + ${rarSpan(T2R[cpTier(m)], TIERS[cpTier(m)].name + " weapon")}` : ` + ${rarSpan("legendary", "Legendary")} + crown` : m.mi % 2 ? ` + 2 ${IC.potion}` : ` + 2 ${IC.ration}`}</div></div></div>
+      ${done ? `<div class="small">Cleared · can't be replayed for rewards</div>` : out ? `<div class="small">${S.ghost && S.ghost.tid === m.id ? "📸 The snapshot party is on the way." : "A party is on the way."}</div>` : op ? `<div class="btns"><button class="go" data-act="cpGo" data-m="${m.id}">Send a party</button>${snapOK(t) ? `<button class="alt" data-act="snapOpen" data-m="${m.id}">📸 Snapshot</button>` : ""}</div>` : S.b.hall < m.unlock ? `<div class="small">${IC.lock} Hall ${m.unlock}</div>` : `<div class="small">Clear the mission before first.</div>`}</div>`; });
   h += `</div><div class="btns"><button class="alt" data-act="close">Close</button></div>`;
   openSheet(h, "camp:" + ch);
+}
+// ---------- rc6.5 (PLAN rc6.5, approved by Kurtis Oct 16 2026 9:28 PM PT): rarities, materials, smithy crafting, armor, snapshot
+// campaign runs and town raids. PERMANENT RULES hold: no gold buys time anywhere here, nothing here pays gold, a raid never takes gold.
+// 1) Rarities. The 5 weapon tiers already are the 5 rarities: Rusty and Starter = Common (grey), Iron = Uncommon (green), Steel = Rare
+//    (blue), Enchanted = Epic (purple), Legendary = Legendary (orange). The save upgrade (v65) keeps every weapon string exactly as it
+//    was (equipped, stores, bank, gate), so nobody's gear is renamed, re-rolled or wiped; the rarity is read from the tier wherever gear shows.
+const RAR = { common: { n: "Common", c: "#7d848c" }, uncommon: { n: "Uncommon", c: "#2f9e44" }, rare: { n: "Rare", c: "#2f6fd0" }, epic: { n: "Epic", c: "#8e44d6" }, legendary: { n: "Legendary", c: "#e8700a" } };
+const RAR_KEYS = Object.keys(RAR);
+const T2R = { starter: "common", rusty: "common", iron: "uncommon", steel: "rare", enchanted: "epic", legendary: "legendary" };
+const R2T = { common: "rusty", uncommon: "iron", rare: "steel", epic: "enchanted", legendary: "legendary" };
+const rarOf = w => T2R[wT(w)] || "common";
+const rarN = w => RAR[rarOf(w)].n;
+const rarSpan = (r, txt) => `<span class="rar r-${RAR[r] ? r : "common"}" data-rar="${RAR[r] ? r : "common"}">${esc(txt)}</span>`;
+const wHTML = w => rarSpan(rarOf(w), wName(w)) + (wCr(w) ? ' <span class="crft">crafted</span>' : ""); // a spare weapon's name in its rarity color (+ its crafted mark)
+const wornHTML = (tier, cls) => rarSpan(T2R[tier] || "common", `${(TIERS[tier] || TIERS.rusty).name} ${CLS[cls] ? CLS[cls].wname : "weapon"}`);
+const wTxt = w => `${wName(w)} (${rarN(w)}${wCr(w) ? ", crafted" : ""})`; // plain text: toasts and banners
+// 2) Armor: one slot per hero, any class, made only at the smithy. Its power is about half a weapon of the same rarity.
+const ARM_B = { common: 1, uncommon: 2, rare: 3, epic: 6, legendary: 10 };
+const armB = h => (h && h.armor && ARM_B[h.armor]) || 0;
+const aName = r => `${RAR[r] ? RAR[r].n : "Common"} Armor`;
+const aHTML = r => rarSpan(r, aName(r));
+// 3) Materials: won trips to monsters and dungeons (and map pins) bring them home straight to stores; quests and the campaign don't.
+//    The Shop sells only the basic two. Gems need the Crypt or harder; cores the Mines, the Young Dragon or Dragon's Hollow.
+const MAT = { iron: { n: "Iron", ic: "🔩" }, hide: { n: "Hide", ic: "🧥" }, gem: { n: "Gems", ic: "💎" }, core: { n: "Rare cores", ic: "🔮" } };
+const MAT_KEYS = Object.keys(MAT);
+const MAT_PRICE = { iron: 20, hide: 20 };
+// [a, b] = a to b of them; a number below 1 = that chance of 1 (a Rogue doubles chances, like weapon and Potion drops)
+const MAT_DROP = { goblin: { iron: [0, 1], hide: [1, 1] }, troll: { iron: [1, 1], hide: [1, 2], gem: .15 }, dragon: { hide: [1, 2], gem: .5, core: .03 },
+  crypt: { iron: [1, 2], gem: .2 }, mines: { iron: [1, 3], gem: .4, core: .02 }, hollow: { iron: [1, 2], hide: [0, 1], gem: [0, 1], core: .05 } };
+const PIN_MAT = { dungeon: { iron: [1, 1], gem: .1 }, animal: { hide: [1, 1] } };
+function matRoll(tg, mem) {
+  const D = tg && (tg.pin ? PIN_MAT[tg.type] : MAT_DROP[tg.id]); if (!D) return null;
+  const dm = mem && hasCls(mem, "rogue") ? 2 : 1, o = {};
+  for (const k of MAT_KEYS) { const v = D[k]; if (v == null) continue; const n = Array.isArray(v) ? v[0] + Math.floor(Math.random() * (v[1] - v[0] + 1)) : Math.random() < Math.min(1, v * dm) ? 1 : 0; if (n > 0) o[k] = n; }
+  return Object.keys(o).length ? o : null;
+}
+function matAdd(o, sgn) { if (!o) return; if (!S.mat) S.mat = {}; for (const k of MAT_KEYS) if (o[k]) S.mat[k] = Math.max(0, (S.mat[k] || 0) + (sgn || 1) * o[k]); }
+const matN = k => Math.max(0, Math.floor(+(S.mat && S.mat[k]) || 0));
+const matTxt = o => MAT_KEYS.filter(k => o && o[k]).map(k => `${MAT[k].ic}${o[k]}`).join(" ");
+const matWords = o => MAT_KEYS.filter(k => o && o[k]).map(k => `${o[k]} ${MAT[k].n}`).join(", ");
+const matRow = () => `<div class="loot matrow" id="matRow">${MAT_KEYS.map(k => `<span title="${MAT[k].n}">${MAT[k].ic} ${matN(k)}</span>`).join("")}</div>`;
+// 4) Smithy crafting: one job at a time (shared with the Forge), a smith must be working, no gold and no skip. Higher rarities need a
+//    higher Smithy level and dungeon-only materials. Armor swaps the weapon's iron and hide.
+const RECIPE = { common: { iron: 3, hide: 1, ms: 10 * MIN, sm: 1 }, uncommon: { iron: 6, hide: 3, ms: 30 * MIN, sm: 1 }, rare: { iron: 8, hide: 4, gem: 4, ms: HR, sm: 2 },
+  epic: { iron: 12, hide: 6, gem: 10, core: 2, ms: 2 * HR, sm: 3 }, legendary: { iron: 16, hide: 10, gem: 20, core: 6, ms: 4 * HR, sm: 4 } };
+const recipeOf = (r, kind) => { const R = RECIPE[r], o = {}; for (const k of MAT_KEYS) if (R[k]) o[k] = R[k]; if (kind === "armor") { o.iron = R.hide; o.hide = R.iron; } return o; };
+const canPay = o => MAT_KEYS.every(k => !o[k] || matN(k) >= o[k]);
+const craftMs = r => Math.round(RECIPE[r].ms * (1 - FORGE_STEP * vLvlAt("smithy")));
+const smithBusy = () => !!(S.work && (S.work.forge || S.work.craft));
+const craftOut = C => C.kind === "armor" ? aName(C.r) : `${RAR[C.r].n} ${CLS[C.c] ? CLS[C.c].wname : "weapon"}`;
+let CRAFTK = "weapon", CRAFTC = null;
+const craftCls = () => { const ks = CLS_KEYS.filter(k => S.heroes.some(h => h.cls === k)); if (!CRAFTC || !ks.includes(CRAFTC)) CRAFTC = ks[0] || "warrior"; return { ks, c: CRAFTC }; };
+function craftStart(kind, r, c, t) {
+  if (!RECIPE[r] || (kind !== "weapon" && kind !== "armor")) return "That can't be made.";
+  if (!(S.b.smithy > 0) || !vAt("smithy")) return "A smith has to be working at the smithy.";
+  if (smithBusy()) return "The smith is busy.";
+  if (S.b.smithy < RECIPE[r].sm) return `Needs Smithy level ${RECIPE[r].sm}.`;
+  if (kind === "weapon" && !S.heroes.some(h => h.cls === c)) return "Pick a class one of your heroes has.";
+  const o = recipeOf(r, kind); if (!canPay(o)) return "Not enough materials.";
+  matAdd(o, -1); S.work.craft = { kind, r, c: kind === "weapon" ? c : null, start: t, end: t + craftMs(r) }; return "";
+}
+function craftDone(t) { // in townSync: a finished job goes to stores (forward-only: its end was fixed when it started)
+  const C = S.work && S.work.craft; if (!C || C.end > t) return;
+  S.work.craft = null;
+  if (C.kind === "armor") S.armor.push(C.r); else { const w = wOf(R2T[C.r], C.c, 1); S.weapons.push(w); } // marked crafted
+  if (LIVE && !document.hidden) toast(`The smithy finished ${art(RAR[C.r].n)} ${craftOut(C)}. It's in your stores.`);
+}
+// crafted weapons sell for 0 gold, so materials (and raids) can never turn into gold. The mark is on each item (wCr), never a count.
+const sellOf = w => wCr(w) ? 0 : (TIERS[wT(w)] || TIERS.rusty).sell;
+function craftBlock(t) {
+  const C = S.work.craft, v = vAt("smithy"), { ks, c } = craftCls(), K = CRAFTK === "armor" ? "armor" : "weapon";
+  let h = `<div class="card" id="craftCard" style="margin-top:10px"><b>🔨 Crafting</b><div class="small">Turn materials into gear. Higher rarities need a higher Smithy level and dungeon materials.</div>${matRow()}`;
+  if (!v) return h + `<div class="small">Put a villager to work here to craft.</div></div>`;
+  if (C) return h + `<div class="small" style="margin-top:6px">Making ${aOrA(C)} · <b data-cend="${C.end}">${fmtCL(C.end - t)}</b></div><div class="bar"><i data-pg="${C.start},${C.end}" style="width:${Math.min(100, (t - C.start) / (C.end - C.start) * 100)}%"></i></div></div>`;
+  if (S.work.forge) return h + `<div class="small">The smith is forging. Crafting opens when it's done.</div></div>`;
+  h += `<div class="chips" style="margin-top:6px"><button class="chip${K === "weapon" ? " on" : ""}" data-act="craftK" data-k="weapon">${IC.sword} Weapon</button><button class="chip${K === "armor" ? " on" : ""}" data-act="craftK" data-k="armor">${IC.shield} Armor</button></div>`;
+  if (K === "weapon") h += `<div class="chips">${ks.map(k => `<button class="chip${k === c ? " on" : ""}" data-act="craftC" data-c="${k}"><span class="mini">${heroSVG(k, 1)}</span>${CLS[k].name}</button>`).join("")}</div>`;
+  for (const r of RAR_KEYS) {
+    const o = recipeOf(r, K), lock = S.b.smithy < RECIPE[r].sm, pay = canPay(o), nm = K === "armor" ? aName(r) : `${TIERS[R2T[r]].name} ${CLS[c].wname}`, pw = K === "armor" ? ARM_B[r] : TIERS[R2T[r]].bonus;
+    h += `<div class="list-item craftrow" data-craft="${r}"><div class="grow">${rarSpan(r, nm)} <span class="small">· ${RAR[r].n} · +${pw} power · ${fmtC(craftMs(r))}</span><div class="small">${MAT_KEYS.filter(k => o[k]).map(k => `<span class="${matN(k) >= o[k] ? "" : "matno"}">${MAT[k].ic}${matN(k)}/${o[k]}</span>`).join(" ")}${lock ? ` · ${IC.lock} Smithy ${RECIPE[r].sm}` : ""}</div></div><button class="go" data-act="craft" data-r="${r}" data-k="${K}" data-c="${c}" ${lock || !pay ? "disabled" : ""}>Craft</button></div>`;
+  }
+  return h + `<div class="small">Crafted gear can't be sold for gold.</div></div>`;
+}
+const aOrA = C => `${art(RAR[C.r].n)} ${rarSpan(C.r, craftOut(C))}`;
+// 5) Campaign with a snapshot: every party sent leaves a snapshot of its heroes as they left (rank, gear, stats). While that party is
+//    still out, the snapshot can run ONE open campaign mission: the real power check and rule, the normal first-clear reward (once per
+//    mission, like any clear). Its one-time first-clear rewards (gold, listed items, boss weapon, villagers) come through cpClear, the same path as a
+//    normal clear, so they can only ever be paid once per mission. No XP, no knockouts. Cleared missions are never open, so a snapshot can't replay them, and its
+//    roll is fixed when it leaves (a pasted older save code rolls the same).
+const SNAP_KEEP = ["id", "name", "cls", "start", "lvl", "weapon", "armor", "vig", "skill", "grit", "seed", "pr"];
+function snapTake(p, mem) { S.snap = { pid: p.id, at: p.start, tid: p.tid, used: 0, h: mem.map(h => { const o = {}; for (const k of SNAP_KEEP) o[k] = h[k] === undefined ? null : h[k]; return o; }) }; }
+const snapMem = () => S.snap && Array.isArray(S.snap.h) ? S.snap.h.map(o => ({ ...o, rk: {}, supply: null, koEnd: 0 })) : [];
+const snapOut = t => !!(S.snap && S.parties.some(p => p.id === S.snap.pid && p.end > t));
+const snapOK = t => !!(S.snap && !S.snap.used && !S.ghost && snapOut(t) && snapMem().length);
+function snapSend(mid, t) {
+  const m = CPM[mid]; if (!m || !cpOpen(mid)) return "That mission isn't open.";
+  if (S.ghost) return "The snapshot party is already out.";
+  if (!snapOK(t)) return "No snapshot ready. Send a party first; its snapshot can run while they're away.";
+  if (busy(mid)) return "A party is already there.";
+  const mem = snapMem(), why = cpRuleWhy(m, mem); if (why) return why;
+  const P = runParts(mem, m, t), fail = failChance(mem, m);
+  S.ghost = { tid: mid, start: t, outEnd: t + P.w, jobEnd: t + P.w + P.j, end: t + P.total, fail, roll: Math.random(), pow: partyPow(mem), names: mem.map(h => h.name), cls: mem.map(h => h.cls), seeds: mem.map(h => h.seed), weapons: mem.map(h => h.weapon) };
+  S.snap.used = 1; return "";
+}
+function ghostRet() {
+  const G = S.ghost, T = G.end, m = CPM[G.tid]; S.ghost = null;
+  const bty0 = btySnap(), failed = !m || !(G.roll >= G.fail), full = T > S.lastCollect + capMs();
+  const ev = { k: "ret", snap: 1, tid: G.tid, name: m ? m.name : "?", ic: m ? m.ic : "❔", T, names: G.names.slice(), ids: [], failed, full: false, gold: 0, xp: 0, wpn: null, pot: 0, rat: 0, lv: [], ko: null, koId: null, xps: [] };
+  if (!failed && !cpCleared(G.tid)) {
+    const to = full ? { gold: 0, potions: 0, rations: 0, weapons: [] } : S.bank;
+    if (!full) { S.bank.from = S.bank.from || []; if (!S.bank.from.includes(m.name)) S.bank.from.push(m.name); }
+    cpClear(G.tid, T, to, ev); if (full) { ev.full = true; S.gate.push({ tid: G.tid, name: m.name, ic: m.ic, members: [], reason: "Bank full", loot: to, T }); }
+  }
+  ev.bty = btyDiff(bty0); ev.tl = tlogAdd(ev);
+  ev.live = LIVE && !document.hidden; S.events.push(ev); AUD.ret(ev); if (ev.live) BN.ret(ev);
+}
+function openSnap(mid) {
+  const t = now(); process(t); const m = CPM[mid]; if (!m) return;
+  if (!snapOK(t)) { toast(S.ghost ? "The snapshot party is already out." : "No snapshot ready. Send a party first; its snapshot can run while they're away."); return openCamp(m.ch); }
+  const mem = snapMem(), pw = partyPow(mem), f = failChance(mem, m), P = runParts(mem, m, t), why = cpRuleWhy(m, mem), ratio = pw / m.need;
+  let h = `<div class="pophead"><span class="tic">${m.ic}</span><div class="grow"><h3>📸 ${esc(m.name)}</h3><div class="small">Snapshot of the party you last sent, as they left · first clear ${IC.gold} ${num(cpGold(m, t))}</div></div></div><div class="snaplist">`;
+  mem.forEach(x => h += `<div class="list-item snaph"><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span><div class="grow"><b>${esc(x.name)}</b> <span class="small">${CLS[x.cls] ? CLS[x.cls].name : ""} · Rank ${x.lvl}</span><div class="small">${x.weapon ? wornHTML(x.weapon, x.cls) : "No weapon"}${x.armor ? " · " + aHTML(x.armor) : ""}</div></div><span class="fist">${IC.fist}${power(x)}</span></div>`);
+  h += `</div><div class="card" style="margin-top:8px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="snapTime">${fmtC(P.total)}</div></div><div class="grow">Power <div><span class="pwbig ${pwCls(ratio)}" id="snapPow">${IC.fist}${pw}</span> <span class="need">/ ${m.need}</span></div></div></div><div class="failp small" id="snapFail">${pct(f)} chance to fail</div></div>`;
+  h += `<p class="small" id="snapRule">🗺️ ${esc(m.rule.txt)} · ${why ? `<b class="cpno">✗ Not met</b>` : `<b class="cpok">✓ OK</b>`}</p><p class="small">The real heroes keep working. A snapshot earns the mission's one-time first-clear rewards (gold and its listed items) like a normal clear, but no XP and no knockouts, and it can run one mission per party sent.</p>`;
+  if (ratio < 1) h += `<div class="warnbar">${IC.warn}<span>Underpowered. This will probably fail.</span></div>`;
+  h += `<div class="btns"><button class="go big" data-act="snapGo" data-m="${m.id}" ${why ? "disabled" : ""}>Send snapshot</button><button class="alt" data-act="cpCh" data-c="${m.ch}">Back</button></div>`;
+  openSheet(h, "snap:" + m.id);
+}
+function snapCard(t) {
+  if (S.ghost) { const m = CPM[S.ghost.tid]; return `<div class="card snapcard" id="snapCard">📸 <b>Snapshot party</b> on ${esc(m ? m.name : "?")} · back in <b data-cend="${S.ghost.end}">${fmtCL(S.ghost.end - t)}</b></div>`; }
+  if (snapOK(t)) { const mem = snapMem(); return `<div class="card snapcard" id="snapCard">📸 <b>Snapshot ready:</b> ${esc(whoTxt(mem.map(h => h.name)))} · ${IC.fist}${partyPow(mem)}<div class="small">The party you last sent, as they left. While they're away it can run one open mission below (first-clear reward, no XP).</div></div>`; }
+  return `<div class="small snapcard" id="snapCard">📸 Send any party and its snapshot can run one mission here while they're away.</div>`;
+}
+// 6) Town raids (Hall 2+): 3 a day at set times on the phone's calendar (one each morning, afternoon and evening window), warned 30 min
+//    ahead. Heroes at home (not out, not knocked out) plus the Hall and Smithy fight on their own. A win brings materials; a loss takes
+//    up to 10% of each stored material, never gold, gear, Potions or Rations, and nobody is hurt. Forward-only: S.raid.last only grows,
+//    a raid at or before it never runs again, raids missed by over 24 h simply pass, and each roll is fixed by the raid and the save.
+const RAID_HALL = 2, RAID_WIN = [[9, 12], [14, 17], [19, 22]], RAID_WARN = 30 * MIN, RAID_KEEP = 24 * HR, RAID_LOG = 10;
+const RAID_BASE = [0, 60, 140, 260, 420], RAID_TOP = .45, RAID_DEF = { hall: 20, smithy: 15 }, RAID_LOSS = .1, RAID_LOSS_MAX = { iron: 10, hide: 10, gem: 4, core: 1 };
+const raidU = (key, salt) => (hash32(key + "|" + salt + "|" + ((S && S.created) || 0)) >>> 0) / 4294967296;
+function raidSlots(t) {
+  const d = new Date(t), y = d.getFullYear(), mo = d.getMonth(), dd = d.getDate(), dk = "" + y + String(mo + 1).padStart(2, "0") + String(dd).padStart(2, "0");
+  return RAID_WIN.map(([a, b], i) => ({ key: dk + "-" + i, at: new Date(y, mo, dd, a, (hash32("raid" + dk + i) >>> 0) % ((b - a) * 60)).getTime() }));
+}
+function raidNext(after) { for (let k = 0; k < 3; k++) { const d = new Date(after); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + k); for (const r of raidSlots(d.getTime())) if (r.at > after) return r; } return null; }
+const raidOn = () => !!S && S.b.hall >= RAID_HALL;
+const raidHome = T => S.heroes.filter(h => !S.parties.some(p => p.members.includes(h.id) && p.start <= T && p.end > T) && !isKO(h, T));
+const raidBld = () => RAID_DEF.hall * S.b.hall + RAID_DEF.smithy * (S.b.smithy || 0);
+const raidDef = T => raidHome(T).reduce((a, h) => a + power(h), 0) + raidBld();
+const raidPow = key => Math.round(Math.max(RAID_BASE[S.b.hall - 1] || 0, RAID_TOP * S.heroes.map(power).sort((a, b) => b - a).slice(0, MAXP).reduce((a, b) => a + b, 0)) * (.85 + .3 * raidU(key, "p")));
+const raidWinP = (D, R) => Math.max(.05, Math.min(.97, .5 + (D / Math.max(1, R) - 1) * .9));
+function raidLoot(key) { const H = S.b.hall, o = { iron: H, hide: H }; if (H >= 3) o.gem = H - 2; if (H >= 5 && raidU(key, "c") < .1) o.core = 1; return o; }
+function raidLossOf() { const o = {}; for (const k of MAT_KEYS) { const n = matN(k); if (n >= 3) o[k] = Math.min(RAID_LOSS_MAX[k], Math.max(1, Math.floor(n * RAID_LOSS))); } return o; }
+const raidCur = key => S.raid.cur && S.raid.cur.key === key ? S.raid.cur.pow : raidPow(key);
+function raidDue(t) { if (!raidOn()) return null; const r = raidNext(S.raid.last || 0); return r && r.at <= t ? r : null; }
+function raidRun(r, t) {
+  const R = S.raid; R.last = r.at;
+  if (t - r.at > RAID_KEEP) { R.cur = null; return 0; } // long gone while away: it passed, nothing either way
+  const pow = raidCur(r.key), home = raidHome(r.at), D = raidDef(r.at), win = raidU(r.key, "w") < raidWinP(D, pow);
+  const ev = { k: "raid", T: r.at, key: r.key, win, pow, def: D, n: home.length, names: home.map(h => h.name) };
+  if (win) { ev.got = raidLoot(r.key); matAdd(ev.got); } else { ev.lost = raidLossOf(); matAdd(ev.lost, -1); }
+  R.cur = null; R.log.push({ T: r.at, win, pow, def: D, n: home.length, got: ev.got || null, lost: ev.lost || null }); if (R.log.length > RAID_LOG) R.log.splice(0, R.log.length - RAID_LOG);
+  ev.live = LIVE && !document.hidden; S.events.push(ev);
+  if (ev.live) BN.add(win ? "ret" : "ko", "⚔️", win ? `Raid beaten off! ${home.length} at home and the walls held. Got ${matWords(ev.got)}.` : `The raiders broke in${matWords(ev.lost) ? ` and took ${matWords(ev.lost)}` : ""}. No gold lost.`);
+  return 1;
+}
+const raidWarn = t => { if (!raidOn() || !S.raid) return null; const n = raidNext(Math.max(S.raid.last || 0, t)); return n && t >= n.at - RAID_WARN ? n : null; };
+function raidSync(t) { // after process(): fix the warned raid's strength, and say so once
+  const R = S.raid; if (!raidOn()) { R.last = Math.max(R.last || 0, t); R.cur = null; return; }
+  const n = raidWarn(t); if (n && (!R.cur || R.cur.key !== n.key)) { R.cur = { key: n.key, at: n.at, pow: raidPow(n.key) }; if (LIVE && !document.hidden) BN.add("ko", "⚔️", `Raiders spotted! They reach town in ${fmtC(n.at - t)}. Heroes at home will fight.`); }
+}
+const raidLine = x => x.win ? `<b class="cpok">Won</b> · ${matTxt(x.got)}` : `<b class="cpno">Lost</b>${x.lost && matTxt(x.lost) ? ` · −${matTxt(x.lost)}` : ""} · no gold lost`;
+function raidHTML(t) {
+  const w = raidWarn(t), n = w || raidNext(Math.max(S.raid.last || 0, t)), pow = n ? raidCur(n.key) : 0, home = raidHome(t), D = raidDef(t), p = n ? raidWinP(D, pow) : 0;
+  let h = `<div class="row"><div class="grow"><b>${w ? "⚔️ Raiders on the way" : "Next raid"}</b><div class="small">${n ? (w ? `Here in <b data-cend="${n.at}">${fmtCL(n.at - t)}</b>` : `${whenTxt(n.at)} · warning 30 min before`) : ""}</div></div><div class="small" style="text-align:right">Raiders ${IC.fist}<b id="raidPow">${pow}</b><br>Defense ${IC.fist}<b id="raidDef">${D}</b></div></div>`;
+  h += `<div class="small">At home now: ${home.length ? esc(home.map(x => x.name).join(", ")) : "nobody"} (${IC.fist}${D - raidBld()}) · walls: Hall and Smithy ${IC.fist}${raidBld()} · <b id="raidP">${pct(p)}</b> to win now</div>`;
+  h += `<div class="small">Win: ${matTxt(raidLoot(n ? n.key : "x"))}. Loss: up to 10% of each stored material (at most ${RAID_LOSS_MAX.iron} Iron, ${RAID_LOSS_MAX.hide} Hide, ${RAID_LOSS_MAX.gem} Gems, ${RAID_LOSS_MAX.core} core). Never gold, gear, Potions or Rations, and nobody is hurt.</div>`;
+  return h;
+}
+function raidCard(t) {
+  if (!raidOn()) return "";
+  return `<div class="card" id="raidCard"><div class="row"><div class="grow"><h3>⚔️ Town defense</h3></div><button class="alt" data-act="raidOpen">Details</button></div>${raidHTML(t)}</div>`;
+}
+function openRaid() {
+  const t = now(); process(t); if (!raidOn()) return toast(`Raids start at Hall ${RAID_HALL}.`);
+  let h = `<button class="sx" data-act="close" aria-label="Close">✕</button><h3>⚔️ Town defense</h3>${raidHTML(t)}<p class="small">Three raids a day: one each morning (9 AM to noon), afternoon (2 to 5 PM) and evening (7 to 10 PM). Keep some heroes home to fight. Each Hall level adds ${RAID_DEF.hall} defense and each Smithy level ${RAID_DEF.smithy}.</p>`;
+  const L = (S.raid.log || []).slice().reverse(); h += `<h4>Last raids</h4>` + (L.length ? L.map(x => `<div class="small raidlog">${whenTxt(x.T)} · ${x.n} home · ${IC.fist}${x.def} vs ${x.pow} · ${raidLine(x)}</div>`).join("") : `<p class="small">None yet.</p>`);
+  openSheet(h, "raid");
+}
+function v65(s) { // rc6.5 fields, added once; nothing else in the save changes (weapon strings are kept: tiers are the rarities)
+  const t = Date.now() + (s.offset || 0);
+  if (!s.mat || typeof s.mat !== "object") s.mat = {};
+  for (const k of MAT_KEYS) s.mat[k] = Math.max(0, Math.floor(+s.mat[k] || 0));
+  if (!Array.isArray(s.armor)) s.armor = [];
+  s.armor = s.armor.filter(r => !!RAR[r]);
+  for (const h of s.heroes || []) if (h.armor != null && !RAR[h.armor]) h.armor = null; // a hero without armor keeps no field (old saves stay byte-for-byte)
+  // the per-tier crafted count of early rc6.5 test saves becomes a mark on that many spares of the tier (it never shipped)
+  if (s.cft && typeof s.cft === "object") { const L = s.weapons || []; for (const tk of Object.keys(s.cft)) { let n = Math.max(0, Math.floor(+s.cft[tk] || 0)); for (let i = 0; i < L.length && n > 0; i++) if (wT(L[i]) === tk && wC(L[i]) && !wCr(L[i])) { L[i] = wOf(tk, wC(L[i]), 1); n--; } } }
+  delete s.cft;
+  for (const h of s.heroes || []) if (h.wcr) h.wcr = 1; else delete h.wcr; // only a crafted worn weapon carries the field
+  if (!s.raid || typeof s.raid !== "object") s.raid = { last: t, cur: null, log: [] };
+  if (!Number.isFinite(+s.raid.last)) s.raid.last = t; if (!Array.isArray(s.raid.log)) s.raid.log = []; if (s.raid.cur && !(s.raid.cur.key && Number.isFinite(+s.raid.cur.pow))) s.raid.cur = null;
+  if (s.work && s.work.craft && !(RECIPE[s.work.craft.r] && Number.isFinite(+s.work.craft.end))) s.work.craft = null;
+  if (s.snap && !(Array.isArray(s.snap.h) && s.snap.h.length)) s.snap = null;
+  if (s.ghost && !(CPM[s.ghost.tid] && Number.isFinite(+s.ghost.end) && Number.isFinite(+s.ghost.roll))) s.ghost = null;
+  if (!s.rv) s.rv = 1; // the rarity map (T2R) applies from here; no gear was touched
 }
 function v63(s) { // rc6.3 fields, added once; nothing else in the save changes
   const t = Date.now() + (s.offset || 0);
@@ -2252,9 +2500,10 @@ function townSync(t) {
     }
   }
   const F = W.forge; if (F && F.end <= t) { S.bank.weapons.push(F.out); S.bank.from = S.bank.from || []; if (!S.bank.from.includes("Smithy")) S.bank.from.push("Smithy"); W.forge = null; if (LIVE && !document.hidden) toast(`The smithy finished ${art(TIERS[wT(F.out)].name)} ${wName(F.out)}. It's in the bank.`); }
+  craftDone(t); // rc6.5
   btyRoll(t); merSync(t); yardSync(t); rbSync(t); tevSync(t); colSync();
 }
-const townSig = t => [tevSig(t), colN(), yardSig(t), S.rb ? S.rb.key + S.rb.n + (S.rb.offers || []).length : "", S.b.bakery, S.b.garden, S.b.smithy, (S.vil || []).map(v => v.at + vLvl(v)).join(","), S.work ? S.work.bakery.n + ":" + S.work.garden.n + ":" + (S.work.forge ? 1 : 0) : "", S.bty ? S.bty.day + S.bty.g.map(g => g.c + (g.got ? "g" : "")).join("") + S.bty.bonus : "", merOn(t) ? S.mer.key + S.mer.bought : ""].join("|");
+const townSig = t => [S.raid ? (raidWarn(t) ? raidWarn(t).key : "") + "/" + S.raid.log.length + "/" + (S.raid.cur ? S.raid.cur.key : "") : "", MAT_KEYS.map(matN).join("."), (S.armor || []).join("."), S.work && S.work.craft ? S.work.craft.end : "", S.ghost ? S.ghost.tid + S.ghost.end : "", S.snap ? S.snap.pid + (S.snap.used ? "u" : "") : "", S.weapons.filter(wCr).length, tevSig(t), colN(), yardSig(t), S.rb ? S.rb.key + S.rb.n + (S.rb.offers || []).length : "", S.b.bakery, S.b.garden, S.b.smithy, (S.vil || []).map(v => v.at + vLvl(v)).join(","), S.work ? S.work.bakery.n + ":" + S.work.garden.n + ":" + (S.work.forge ? 1 : 0) : "", S.bty ? S.bty.day + S.bty.g.map(g => g.c + (g.got ? "g" : "")).join("") + S.bty.bonus : "", merOn(t) ? S.mer.key + S.mer.bought : ""].join("|");
 function workInfo(b) {
   const L = S.b[b], v = vAt(b);
   if (!L) return b === "bakery" ? "Not built yet. A baker here makes Rations." : b === "garden" ? "Not built yet. A gardener here grows Potions." : "Not built yet. A smith here forges 3 weapons into 1 better one.";
@@ -2312,13 +2561,14 @@ function openVil(id) {
 }
 function vilSet(id, b) { const t = now(); process(t); const v = S.vil.find(x => x.id === id); if (!v || !(S.b[b] > 0)) return false; const who = vAt(b); if (who && who !== v) who.at = null; v.at = b; return true; }
 // the forge (DESIGN 34): 3 weapons of one tier and class become 1 of the next tier. No gold, no skip; a smith must be working.
-function forgeOpts() { const c = {}; for (const w of S.weapons) { const T = wT(w); if (!FORGE_LADDER.includes(T) || T === "legendary" || !wC(w)) continue; c[w] = (c[w] || 0) + 1; } return Object.keys(c).filter(w => c[w] >= 3).map(w => ({ w, n: c[w], out: wOf(FORGE_LADDER[FORGE_LADDER.indexOf(wT(w)) + 1], wC(w)) })); }
+function forgeOpts() { const c = {}, l = {}; for (const w of S.weapons) { const T = wT(w); if (!FORGE_LADDER.includes(T) || T === "legendary" || !wC(w)) continue; const k = wOf(T, wC(w)); c[k] = (c[k] || 0) + 1; if (!wCr(w)) l[k] = (l[k] || 0) + 1; } return Object.keys(c).filter(w => c[w] >= 3).map(w => ({ w, n: c[w], out: wOf(FORGE_LADDER[FORGE_LADDER.indexOf(wT(w)) + 1], wC(w), (l[w] || 0) < 3) })); } // rc6.5: copies count together; looted ones go in first, and any crafted one makes the result crafted
 function forgeBlock(t) {
   const F = S.work.forge, v = vAt("smithy");
   let h = `<div class="card" style="margin-top:10px"><b>⚒️ Forge</b><div class="small">3 of the same weapon become 1 of the next tier. Takes ${fmtC(forgeMs())}.</div>`;
-  if (F) h += `<div class="small" style="margin-top:6px">Forging ${wName(F.out)} · <b data-cend="${F.end}">${fmtCL(F.end - t)}</b></div><div class="bar"><i data-pg="${F.start},${F.end}" style="width:${Math.min(100, (t - F.start) / (F.end - F.start) * 100)}%"></i></div>`;
+  if (F) h += `<div class="small" style="margin-top:6px">Forging ${wHTML(F.out)} · <b data-cend="${F.end}">${fmtCL(F.end - t)}</b></div><div class="bar"><i data-pg="${F.start},${F.end}" style="width:${Math.min(100, (t - F.start) / (F.end - F.start) * 100)}%"></i></div>`;
   else if (!v) h += `<p class="small">Put a villager to work here first.</p>`;
-  else { const o = forgeOpts(); h += o.length ? o.map(x => `<div class="list-item"><div class="grow"><b>3 × ${wName(x.w)}</b> <span class="small">→ ${wName(x.out)} (+${TIERS[wT(x.out)].bonus})</span></div><button class="go" data-act="forge" data-w="${x.w}">Forge</button></div>`).join("") : `<p class="small">No 3 matching spare weapons in stores yet.</p>`; }
+  else if (S.work.craft) h += `<p class="small">The smith is crafting. The Forge opens when it's done.</p>`;
+  else { const o = forgeOpts(); h += o.length ? o.map(x => `<div class="list-item"><div class="grow"><b>3 × ${wHTML(x.w)}</b> <span class="small">→ ${wHTML(x.out)} (+${TIERS[wT(x.out)].bonus})</span></div><button class="go" data-act="forge" data-w="${x.w}">Forge</button></div>`).join("") : `<p class="small">No 3 matching spare weapons in stores yet.</p>`; }
   return h + `</div>`;
 }
 // bounty board (DESIGN 36): 3 goals a day, reset at local midnight; each pays 1 H, all 3 pay 2 H more plus 1 Potion. Capped like all rewards (35).
@@ -2388,7 +2638,8 @@ function merCard(t) {
     <div class="row" style="margin-top:8px"><div class="grow"><b>${merName(it).replace(/^./, c => c.toUpperCase())}</b> <span class="small"><s>${num(full)}</s></span></div>${S.mer.bought ? `<span class="pill st-home">Bought</span>` : `<button class="go" data-act="merBuy" ${S.gold >= it.price ? "" : "disabled"}>${IC.gold} ${num(it.price)}</button>`}</div></div>`;
 }
 // compact time with days for long waits: 2d 4h 10m, 5h 3m 2s, 42s
-const fmtCL = ms => { const s = Math.max(0, Math.round(ms / 1000)); if (s >= 86400) { const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60); return `${d}d ${h}h ${m}m`; } return fmtC(s * 1000); };
+// rc6.5 (Bravo): rounds up like fmt(), so every countdown (march panel, button, bubbles) agrees to the second
+const fmtCL = ms => { const s = Math.max(0, Math.ceil(ms / 1000 - 1e-6)); if (s >= 86400) { const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60); return `${d}d ${h}h ${m}m`; } return fmtC(s * 1000); };
 // building art for the new ones, and the "taller with each level" wrapper used on the map (DESIGN 34)
 function newBldArt(b, L) {
   const O2 = 'stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"', O3 = 'stroke="#3a2a1f" stroke-width="3" stroke-linejoin="round"';
@@ -2481,7 +2732,7 @@ function healBtns(x, t) {
 }
 function eqBtn(x) {
   const q = equipNeed(x); if (!q) return "";
-  return `<button class="eqbtn" data-act="equipBest" data-h="${x.id}">${IC.sword} Equip best${q.w ? ` · ${TIERS[wT(q.w)].name}` : ""}${q.sup ? ` · ${q.sup === "potion" ? IC.potion : IC.ration}` : ""}</button>`;
+  return `<button class="eqbtn" data-act="equipBest" data-h="${x.id}">${IC.sword} Equip best${q.w ? ` · ${rarSpan(rarOf(q.w), TIERS[wT(q.w)].name)}` : ""}${q.a ? ` · ${rarSpan(q.a, "Armor")}` : ""}${q.sup ? ` · ${q.sup === "potion" ? IC.potion : IC.ration}` : ""}</button>`;
 }
 // one row of 3 small stat chips under power (DESIGN 22): boot Vigor, hammer Skill, shield Grit; each has a first-tap tip
 const statChips = x => `<div class="stats">${[["statV", IC.boot, vigOf(x), "Vigor"], ["statS", IC.hammer, skillOf(x), "Skill"], ["statG", IC.shield, gritOf(x), "Grit"]].map(([a, ic, v, n]) => `<button class="stc" data-act="${a}" data-h="${x.id}" aria-label="${n} ${v}">${ic.replace(/<svg( class="ic")?/, '<svg class="stic"')}<b>${v}</b></button>`).join("")}</div>`;
@@ -2515,8 +2766,9 @@ function doPrestige(id) {
   // every class rank back to 1 (the classes stay learned); the old weapon and supply go to stores unchanged, like a class switch (DESIGN 23 m64/65); Vigor, Skill and Grit stay
   for (const k of Object.keys(x.rk || {})) x.rk[k] = [1, 0];
   x.lvl = 1; x.xp = 0; x.rk[x.cls] = [1, 0];
-  if (x.weapon && x.weapon !== "starter") S.weapons.push(wOf(x.weapon, x.cls)); /* rc5.12.1: an own-class Starter is kept (DESIGN 23) */ if (x.supply && x.supply.n > 0) S[x.supply.k === "potion" ? "potions" : "rations"] += x.supply.n;
-  x.weapon = "starter"; x.supply = null;
+  if (x.weapon && x.weapon !== "starter") S.weapons.push(wOf(x.weapon, x.cls, x.wcr)); /* rc5.12.1: an own-class Starter is kept (DESIGN 23) */ if (x.supply && x.supply.n > 0) S[x.supply.k === "potion" ? "potions" : "rations"] += x.supply.n;
+  x.weapon = "starter"; delete x.wcr; x.supply = null;
+  if (x.armor) { S.armor.push(x.armor); x.armor = null; } // rc6.5: like the weapon, armor goes to stores
   x.pr = (x.pr || 0) + 1; S.prest = (+S.prest || 0) + 1;
   return true;
 }
@@ -2527,7 +2779,7 @@ function openHero(id) {
   let h = `<div class="row" style="align-items:flex-start"><div class="portrait">${heroSVG(x.cls, x.seed, x.weapon)}</div><div class="grow">
     <h3>${esc(x.name)}${stars(x)}</h3>${clsHead(x)}
     <div class="bar"><i style="width:${x.lvl >= RANK_MAX ? 100 : x.xp / next * 100}%"></i></div><div class="small">${x.lvl >= RANK_MAX ? "Max rank" : `XP ${num(x.xp)} / ${num(next)}`}</div>
-    <div class="small">${IC.sword} ${x.weapon ? `${TIERS[x.weapon].name} +${TIERS[x.weapon].bonus}` : "No weapon"} · ${x.supply ? `${x.supply.k === "potion" ? IC.potion : IC.ration} ${x.supply.n}` : "No supplies"}</div>
+    <div class="small">${IC.sword} ${x.weapon ? `${rarSpan(T2R[x.weapon] || "common", TIERS[x.weapon].name)} +${TIERS[x.weapon].bonus}` : "No weapon"}${x.armor ? ` · ${aHTML(x.armor)} +${armB(x)}` : ""} · ${x.supply ? `${x.supply.k === "potion" ? IC.potion : IC.ration} ${x.supply.n}` : "No supplies"}</div>
     <div style="margin-top:4px">${statusText(x, t)}</div></div></div>`;
   h += healBtns(x, t);
   h += `<div class="btns"><button class="alt" data-act="close">Close</button></div>`;
@@ -2573,7 +2825,7 @@ function openBld(b, focus) {
     h += `</div>`;
   }
   if (WORK[b] || b === "infirmary") h += vilBlock(b, t);
-  if (b === "smithy" && L) h += forgeBlock(t);
+  if (b === "smithy" && L) h += craftBlock(t) + forgeBlock(t); // rc6.5: crafting first
   h += `<div style="margin-top:10px">${upgBlock(b, t)}</div>`;
   if (b === "hall") h += yardBlock(t) + btyCard(t, true);
   if (b === "hall") h += `<div class="btns">${recBtn()}<button class="alt" data-act="cpOpen" id="cpBtn">🗺️ Campaign</button><button class="alt" data-act="colOpen">📖 Collections${colN() >= 10 ? ` · ${"🏅".repeat(Math.min(5, Math.floor(colN() / 10)))}${colN() >= 60 ? "+" : ""}` : ""}</button><button class="alt" data-act="copyCode">Copy save code</button><button class="alt" data-act="pasteCode">Paste save code</button><button class="alt" data-act="tipsReset">Show tips again</button></div><div class="small" id="lastBackup" style="margin-top:6px">Last backup: ${backupAgo(t)}</div>`;
@@ -2614,8 +2866,10 @@ function openSend() {
 }
 function popupHTML() {
   const ev = S.events.filter(e => !e.live);
-  const rets = ev.filter(e => e.k === "ret"), ups = ev.filter(e => e.k === "up");
+  const rets = ev.filter(e => e.k === "ret"), ups = ev.filter(e => e.k === "up"), raids = ev.filter(e => e.k === "raid");
   const tot = { gold: 0, xp: 0, pot: 0, rat: 0, wpn: [], ko: [], lv: [], full: 0, fails: 0 };
+  tot.mat = {}; rets.forEach(e => { if (e.mat) for (const k of MAT_KEYS) if (e.mat[k]) tot.mat[k] = (tot.mat[k] || 0) + e.mat[k]; });
+  const raidHTMLs = raids.map(e => `<p class="small raidres">⚔️ ${whenTxt(e.T)} raid: ${e.win ? `<b class="cpok">beaten off</b> by ${e.n} at home · +${matTxt(e.got)}` : `<b class="cpno">the raiders broke in</b>${matTxt(e.lost) ? ` · −${matTxt(e.lost)}` : ""} · no gold lost`}</p>`).join("");
   rets.forEach(e => { tot.gold += e.gold; tot.pot += e.pot; tot.rat += e.rat || 0; if (e.wpn) tot.wpn.push(e.wpn); if (e.ko) tot.ko.push(e); tot.lv.push(...e.lv); if (e.full) tot.full++; if (e.failed) tot.fails++; });
   const koCard = e => { const x = hero(e.koId); return `<div class="kohero card st-ko">${x ? `<div class="portrait">${heroSVG(x.cls, x.seed, x.weapon)}<svg class="rx" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff" stroke="#3a2a1f" stroke-width="2"/><path d="M12 6v12M6 12h12" stroke="#e5484d" stroke-width="4.5" stroke-linecap="round"/></svg></div>` : ""}<div>${IC.bed.replace("<svg", '<svg width="40" height="40"')}<div class="big-n">${fmt(e.koMs || recovMs())}</div><div class="small"><b>${esc(e.ko)}</b> was knocked out</div></div></div>`; };
   const faces = e => (e.ids || []).map(hero).filter(Boolean).map(x => `<span class="portrait" style="width:48px;height:58px">${heroSVG(x.cls, x.seed, x.weapon)}</span>`).join("");
@@ -2630,11 +2884,15 @@ function popupHTML() {
     e.lv.forEach(l => h += `<p>${IC.xp} <b>${esc(l)}!</b></p>`);
   } else if (rets.length === 1 && ev.length === 1 && tlogOf(rets[0].tl)) { // rc6.4.2: one trip came home while away
     h = `<h3>Party returned</h3>` + tripHTML(tlogOf(rets[0].tl), true);
+  } else if (ev.length === raids.length) { // rc6.5: only raids happened
+    h = `<h3>While you were away</h3>${raidHTMLs}`;
   } else if (ev.length === 1 && ups.length === 1) {
     h = `<h3>${BLD[ups[0].b]} upgraded</h3><p>The ${BLD[ups[0].b].toLowerCase()} is now level ${ups[0].lvl}.</p>`;
   } else {
     h = `<h3>While you were away</h3><p>${rets.length} run${rets.length === 1 ? "" : "s"} finished${tot.fails ? `, ${tot.fails} went badly` : ""}.</p>
       <div class="bigloot"><span>${big(IC.gold, 44)}+${num(tot.gold)}</span>${tot.pot ? `<span>${big(IC.potion, 44)}+${tot.pot}</span>` : ""}${tot.rat ? `<span>${big(IC.ration, 44)}+${tot.rat}</span>` : ""}${tot.wpn.length ? `<span>${big(IC.sword, 44)}+${tot.wpn.length}</span>` : ""}</div>`;
+    if (matTxt(tot.mat)) h += `<p class="small" id="awayMat">Materials to stores: ${matTxt(tot.mat)}</p>`;
+    h += raidHTMLs;
     if (tot.full) h += `<p class="card st-ko">${IC.bag} <b>Bank full.</b> Some loot waits at the gate. Collect brings it in.</p>`;
     tot.ko.forEach(e => h += koCard(e));
     rets.filter(e => e.shook).forEach(e => h += `<p class="small">${IC.shield} ${esc(e.shook)} shook it off at ${esc(e.name)}. Run failed: half gold.</p>`);
@@ -2656,7 +2914,7 @@ function statusText(h, t) {
   if (inYard(h.id)) return `<span class="pill st-gate">Training</span>`;
   return `<span class="pill st-home">Home</span>`;
 }
-const JOB_IC = { coin: () => IC.gold.replace(/ width="18" height="18"/, ""), hammer: () => IC.hammer, cross: () => IC.cross, pin: () => IC.pin, sword: () => IC.sword.replace(/ width="18" height="18"/, ""), gift: () => IC.gift.replace(/ width="18" height="18"/, ""), broom: () => IC.broom.replace(/ width="18" height="18"/, ""), bounty: () => `<span class="jem">📋</span>`, cart: () => `<span class="jem">🛒</span>`, event: () => `<span class="jem">${TEV_KINDS[S.tev.kind][0]}</span>` };
+const JOB_IC = { coin: () => IC.gold.replace(/ width="18" height="18"/, ""), hammer: () => IC.hammer, cross: () => IC.cross, pin: () => IC.pin, sword: () => IC.sword.replace(/ width="18" height="18"/, ""), gift: () => IC.gift.replace(/ width="18" height="18"/, ""), broom: () => IC.broom.replace(/ width="18" height="18"/, ""), bounty: () => `<span class="jem">📋</span>`, cart: () => `<span class="jem">🛒</span>`, event: () => `<span class="jem">${TEV_KINDS[S.tev.kind][0]}</span>`, raid: () => { const w = raidWarn(now()); return `<span class="jem">⚔️</span>${w ? `<span class="jt" data-cend="${w.at}">${fmtCL(w.at - now())}</span>` : ""}`; } };
 // ---------- rc6: daily check-in (DESIGN 18) and town chores (DESIGN 19, rc6 items 6 and 7) ----------
 // Both pay straight to stores (one gold pile, 5a), skip the bank, and are never halved or scaled by fast travel (27).
 // The prestige bonus (23) multiplies their gold. No new currency.
@@ -2821,11 +3079,15 @@ const sndTxt = () => AUD.muted ? "Music and sound effects off" : `Music ${AUD.mu
 const sndRow = () => `<div class="card sndrow"><span class="sndic${AUD.muted ? " off" : ""}" aria-hidden="true">${SPK(AUD.muted)}</span><div class="grow"><b>Sound</b><div class="small" id="sndTxt">${sndTxt()}</div></div><span id="buildTag" aria-hidden="true">${BUILD}</span></div>`;
 // rc6.1 (DESIGN 30): Settings, a parchment panel. Close with the X or by tapping outside. Later settings can go here too.
 const swBtn = (id, act, on, label) => `<button id="${id}" class="sw${on ? " on" : ""}" role="switch" aria-checked="${on}" aria-label="${label}" data-act="${act}"><i></i></button>`;
+// rc6.5 (Kurtis): a plain mailto link (an anchor, so Android Chrome hands it to the email app); the address also shows as text
+const FEEDBACK_TO = "afktown@mail.grokbot.com";
+const ideasHref = () => `mailto:${FEEDBACK_TO}?subject=${encodeURIComponent("AFK Town ideas")}&body=${encodeURIComponent(`Version ${BUILD}\n\nMy idea: `)}`;
 function openSettings() {
   openSheet(`<button class="sx" data-act="close" aria-label="Close">✕</button><h3>${IC.gear} Settings</h3>
     <div class="setrow"><div class="grow"><b>Music</b><div class="small">The town tune</div></div>${swBtn("swMusic", "swMusic", AUD.musicOn, "Music")}</div>
     <div class="setrow"><div class="grow"><b>Sound effects</b><div class="small">Taps, returns, loot and claims</div></div>${swBtn("swSfx", "swSfx", AUD.sfxOn, "Sound effects")}</div>
     <div class="setrow"><div class="grow"><b>Notifications</b><div class="small">${PUSH.note()}</div></div>${swBtn("swPush", "swPush", PUSH.on(), "Notifications")}</div>
+    <div class="setrow ideas" id="ideasRow"><div class="grow"><b>Send ideas</b><div class="small">Ideas or problems? Tell us by email.</div></div><a class="ideabtn" id="ideasBtn" href="${ideasHref()}">✉️ Send ideas</a><div class="mailtxt small">No mail app? Write to <span id="ideasAddr">${FEEDBACK_TO}</span></div></div>
     <p class="small setnote">Saved on this phone. ${BUILD}</p>`, "settings");
   const b = $("#sheet .box"); if (b) b.classList.add("parch");
 }
@@ -2879,7 +3141,7 @@ function wbChest(i, T) {
   S.bank.gold += g; S.bank.potions += pot; S.bank.rations = (S.bank.rations || 0) + rat; if (w) S.bank.weapons.push(w);
   const nm = WB_LIST[B.ri].name; S.bank.from = S.bank.from || []; if (!S.bank.from.includes(nm)) S.bank.from.push(nm);
   B.got.push({ i, T, H, raw, g, pot, rat, w });
-  if (LIVE && !document.hidden) toast(`${WB_LIST[B.ri].name}: ${Math.round(WB_MARKS[i] * 100)}% chest! ${num(g)} gold${w ? " and a " + wName(w) : ""} in the bank.`);
+  if (LIVE && !document.hidden) toast(`${WB_LIST[B.ri].name}: ${Math.round(WB_MARKS[i] * 100)}% chest! ${num(g)} gold${w ? " and a " + wTxt(w) : ""} in the bank.`);
 }
 function wbRet(p) {
   const T = p.end, mem = p.members.map(hero).filter(Boolean), L = WB_LIST[(S.boss || { ri: 0 }).ri];
@@ -2933,6 +3195,7 @@ function renderTown(t) {
   h += merCard(t);
   h += btyCard(t);
   h += wbCard(t);
+  h += raidCard(t); // rc6.5
   if (S.parties.length) {
     h += `<h2>Out now</h2>`;
     S.parties.slice().sort((a, b) => a.end - b.end).forEach(p => {
@@ -2993,22 +3256,25 @@ function renderPanel(x, t) {
   h += `<div class="hpl"><div class="portrait">${heroSVG(x.cls, x.seed, x.weapon)}</div><h3>${esc(x.name)}${stars(x)}</h3>
     <div class="small"><b>${CLS[x.cls].name}</b> · Rank ${x.lvl}</div><div class="hppow fist">${IC.fist}<b id="ppow">${power(x)}</b>&nbsp;<span class="small">power</span></div>${statChips(x)}${prBtn(x)}
     <div class="hph">Worn</div>
-    <div class="worn" id="wornW">${x.weapon ? `${wpnSVG(x.cls, x.weapon)}<span><b>${TIERS[x.weapon].name}</b> ${W}<br><span class="small">+${cur}</span></span>` : `<span class="small">No ${W.toLowerCase()}</span>`}</div>
+    <div class="worn" id="wornW">${x.weapon ? `${wpnSVG(x.cls, x.weapon)}<span><b>${wornHTML(x.weapon, x.cls)}</b>${x.wcr ? ' <span class="crft">crafted</span>' : ""}<br><span class="small">${RAR[T2R[x.weapon] || "common"].n} · +${cur}</span></span>` : `<span class="small">No ${W.toLowerCase()}</span>`}</div>
+    <button class="worn" id="wornA" data-act="wornA" data-h="${x.id}" ${out || !x.armor ? "disabled" : ""}>${x.armor ? `<span class="armic" data-rar="${x.armor}">${IC.shield}</span><span><b>${aHTML(x.armor)}</b><br><span class="small">+${armB(x)}</span></span>` : `<span class="small">No armor</span>`}</button>
     <button class="worn" id="wornS" data-act="wornS" data-h="${x.id}" ${out || !x.supply ? "disabled" : ""}>${x.supply ? `${x.supply.k === "potion" ? IC.potion : IC.ration}<span><b>${x.supply.k === "potion" ? "Potion" : "Ration"}</b> ×${x.supply.n}</span>` : `<span class="small">Empty</span>`}</button>
     ${out ? "" : eqBtn(x)}</div>`;
   h += `<div class="hpr"><div class="hph">Bag</div>${out ? `<div class="bagnote">Back at the gate to equip.</div>` : ""}<div class="bag${out ? " locked" : ""}">`;
   const keys = TIER_KEYS.filter(k => counts[k]);
   keys.forEach(k => {
     const dv = TIERS[k].bonus - cur;
-    h += `<button class="tile" data-act="bagW" data-h="${x.id}" data-w="${k}" data-c="${x.cls}" data-art="${W}" ${out ? "disabled" : ""}>${wpnSVG(x.cls, k)}<span class="tci">${heroSVG(x.cls, 1)}</span><span class="tn">${TIERS[k].name} ${W}</span><span class="tc">×${counts[k]}</span><span class="dv ${dv > 0 ? "up" : "dn"}">${dv > 0 ? `+${dv} power` : dv < 0 ? `−${-dv}` : "same"}</span></button>`;
+    h += `<button class="tile" data-act="bagW" data-h="${x.id}" data-w="${k}" data-c="${x.cls}" data-art="${W}" ${out ? "disabled" : ""}>${wpnSVG(x.cls, k)}<span class="tci">${heroSVG(x.cls, 1)}</span><span class="tn">${rarSpan(T2R[k] || "common", TIERS[k].name + " " + W)}</span><span class="tc">×${counts[k]}</span><span class="dv ${dv > 0 ? "up" : "dn"}">${dv > 0 ? `+${dv} power` : dv < 0 ? `−${-dv}` : "same"}</span></button>`;
   });
+  { const ac = {}; (S.armor || []).forEach(r => ac[r] = (ac[r] || 0) + 1); RAR_KEYS.filter(r => ac[r]).forEach(r => { const dv = ARM_B[r] - armB(x);
+    h += `<button class="tile" data-act="bagA" data-h="${x.id}" data-a="${r}" ${out ? "disabled" : ""}><span class="armic big" data-rar="${r}">${IC.shield}</span><span class="tn">${aHTML(r)}</span><span class="tc">×${ac[r]}</span><span class="dv ${dv > 0 ? "up" : "dn"}">${dv > 0 ? `+${dv} power` : dv < 0 ? `−${-dv}` : "same"}</span></button>`; }); } // rc6.5: armor, any class
   [["potion", "potions", IC.potion], ["ration", "rations", IC.ration]].forEach(([k, pool, ic]) => {
     if (S[pool] > 0) h += `<button class="tile" data-act="bagS" data-h="${x.id}" data-k="${k}" ${out ? "disabled" : ""}>${ic.replace(/<svg( class="ic")?/, '<svg class="wpic"')}<span class="tn">${supName(k, 2)}</span><span class="tc">×${S[pool]}</span><span class="dv dn">fill to 5</span></button>`;
   });
   const ok = Object.keys(oth).sort((a, b) => CLS_KEYS.indexOf(wC(a)) - CLS_KEYS.indexOf(wC(b)) || TIER_KEYS.indexOf(wT(a)) - TIER_KEYS.indexOf(wT(b)));
-  if (!keys.length && !ok.length && S.potions <= 0 && S.rations <= 0) h += `<p class="small bagempty">The bag is empty. Buy gear in the Shop.</p>`;
+  if (!keys.length && !ok.length && S.potions <= 0 && S.rations <= 0 && !(S.armor || []).length) h += `<p class="small bagempty">The bag is empty. Buy gear in the Shop.</p>`;
   // other classes' weapons: below a thin line, greyed, "Archers only"; a tap only shows that line (DESIGN 28)
-  if (ok.length) h += `<hr class="bagline">` + ok.map(w => { const k = wC(w) && CLS[wC(w)] ? wC(w) : "warrior"; return `<button class="tile other" data-act="bagNo" data-c="${k}" data-w="${wT(w)}" data-art="${CLS[k].wname}">${wpnSVG(k, wT(w))}<span class="tci">${heroSVG(k, 1)}</span><span class="tn">${wName(w)}</span><span class="tc">×${oth[w]}</span><span class="dv dn only">${CLS_PL[k]} only</span></button>`; }).join("");
+  if (ok.length) h += `<hr class="bagline">` + ok.map(w => { const k = wC(w) && CLS[wC(w)] ? wC(w) : "warrior"; return `<button class="tile other" data-act="bagNo" data-c="${k}" data-w="${wT(w)}" data-art="${CLS[k].wname}">${wpnSVG(k, wT(w))}<span class="tci">${heroSVG(k, 1)}</span><span class="tn">${wHTML(w)}</span><span class="tc">×${oth[w]}</span><span class="dv dn only">${CLS_PL[k]} only</span></button>`; }).join("");
   return h + `</div></div></div>`;
 }
 function renderHeroes(t) {
@@ -3019,7 +3285,7 @@ function renderHeroes(t) {
     h += `<div class="card hcard" data-hcard="${x.id}" data-act="heroPanel" data-h="${x.id}"><div class="row" style="align-items:flex-start"><div class="portrait">${heroSVG(x.cls, x.seed, x.weapon)}</div><div class="grow">
       <h3>${esc(x.name)}${stars(x)}${q ? `<span class="hero-badge" title="Better gear in stores">${IC.sword}</span>` : ""}</h3>${clsHead(x)}
       <div class="bar"><i style="width:${x.lvl >= RANK_MAX ? 100 : x.xp / next * 100}%"></i></div><div class="small">${x.lvl >= RANK_MAX ? "Max rank" : `XP ${num(x.xp)} / ${num(next)}`}</div>
-      <div class="small">${IC.sword} ${x.weapon ? `${TIERS[x.weapon].name} ${CLS[x.cls].wname} +${TIERS[x.weapon].bonus}` : "No weapon"} · ${x.supply ? `${x.supply.k === "potion" ? IC.potion : IC.ration} ${x.supply.n}` : "No supplies"}</div>
+      <div class="small">${IC.sword} ${x.weapon ? `${wornHTML(x.weapon, x.cls)} +${TIERS[x.weapon].bonus}` : "No weapon"} · ${x.armor ? `${IC.shield} ${aHTML(x.armor)} +${armB(x)}` : "No armor"} · ${x.supply ? `${x.supply.k === "potion" ? IC.potion : IC.ration} ${x.supply.n}` : "No supplies"}</div>
       <div style="margin-top:4px">${statusText(x, t)}</div></div></div>`;
     h += healBtns(x, t);
     h += `<div class="btns">${prBtn(x)}${out ? "" : `<button class="alt warn" data-act="retire" data-h="${x.id}">Retire</button>`}</div>`;
@@ -3034,15 +3300,18 @@ function renderStores() {
   let h = `<div class="card"><h3>Stores</h3><div class="loot"><span>${IC.gold} ${num(S.gold)}</span><span>${IC.potion} ${S.potions}</span><span>${IC.ration} ${S.rations}</span></div><b>Spare weapons</b>`;
   const keys = Object.keys(counts).sort((a, b) => CLS_KEYS.indexOf(wC(a)) - CLS_KEYS.indexOf(wC(b)) || TIER_KEYS.indexOf(wT(a)) - TIER_KEYS.indexOf(wT(b)));
   if (!keys.length) h += `<p class="small">None. Weapons from runs land here after you collect.</p>`;
-  keys.forEach(k => { const T = TIERS[wT(k)] || TIERS.rusty; h += `<div class="list-item" data-sw="${k}"><div class="grow"><b>${wName(k)}</b> <span class="small">+${T.bonus} power · ×${counts[k]}</span></div><button class="alt" data-act="sellW" data-w="${k}">${T.sell ? `Sell · ${IC.gold} ${num(T.sell)}` : "Sell · 0"}</button></div>`; });
+  keys.forEach(k => { const T = TIERS[wT(k)] || TIERS.rusty, sv = sellOf(k); h += `<div class="list-item" data-sw="${k}"><div class="grow"><b>${wHTML(k)}</b> <span class="small">${rarN(k)} · +${T.bonus} power · ×${counts[k]}</span></div><button class="alt" data-act="sellW" data-w="${k}">${sv ? `Sell · ${IC.gold} ${num(sv)}` : wCr(k) ? "Sell · 0 (crafted)" : "Sell · 0"}</button></div>`; });
+  { const ac = {}; (S.armor || []).forEach(r => ac[r] = (ac[r] || 0) + 1); const ak = RAR_KEYS.filter(r => ac[r]); h += `<b>Spare armor</b>` + (ak.length ? ak.map(r => `<div class="list-item" data-sa="${r}"><div class="grow"><b>${aHTML(r)}</b> <span class="small">+${ARM_B[r]} power · ×${ac[r]} · any class</span></div></div>`).join("") : `<p class="small">None. The smithy crafts armor.</p>`); }
+  h += `<b>Materials</b>${matRow()}<div class="small">From monsters, dungeons and raids. The smithy turns them into gear.</div>`;
   h += `</div><div class="card"><div class="row bld">${bldSVG("shop", S.b.shop)}<div class="grow"><h3>Shop <span class="small">Lv ${S.b.shop}</span></h3><div class="small">${S.b.shop >= 4 ? "10% off everything" : "Upgrade the shop for better weapons"}</div></div></div>`;
   h += `<div class="list-item"><div class="grow">${IC.potion} <b>Potion</b> <span class="small">Job 10% shorter and half the failure chance, or 1 h off a recovery</span></div><button data-act="buyS" data-k="potion" ${S.gold < shopPrice(POTION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(POTION_PRICE)}</button></div>`;
   h += `<div class="list-item"><div class="grow">${IC.ration} <b>Ration</b> <span class="small">Makes both walks of a run 25% shorter</span></div><button data-act="buyS" data-k="ration" ${S.gold < shopPrice(RATION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(RATION_PRICE)}</button></div>`;
+  for (const k of Object.keys(MAT_PRICE)) h += `<div class="list-item" data-buym="${k}"><div class="grow">${MAT[k].ic} <b>${MAT[k].n}</b> <span class="small">A basic smithy material · you have ${matN(k)}</span></div><div class="row" style="gap:4px;flex:none"><button data-act="buyM" data-k="${k}" data-n="1" ${S.gold < shopPrice(MAT_PRICE[k]) ? "disabled" : ""}>${IC.gold} ${shopPrice(MAT_PRICE[k])}</button><button data-act="buyM" data-k="${k}" data-n="5" ${S.gold < 5 * shopPrice(MAT_PRICE[k]) ? "disabled" : ""}>×5 · ${num(5 * shopPrice(MAT_PRICE[k]))}</button></div></div>`;
   const sc = shopCls();
   h += `<div class="shoptabs" role="tablist">${CLS_KEYS.filter(clsOpen).map(k => `<button class="stab${k === sc ? " on" : ""}" role="tab" aria-selected="${k === sc}" data-act="shopTab" data-c="${k}"><span class="mini">${heroSVG(k, 1)}</span>${CLS[k].name}</button>`).join("")}</div>`;
   TIER_KEYS.filter(k => TIERS[k].price).forEach(k => {
     const T = TIERS[k], ok = S.b.shop >= T.shop, c = shopPrice(T.price);
-    h += `<div class="list-item"><div class="grow">${wpnSVG(sc, k)} <b>${T.name} ${CLS[sc].wname}</b> <span class="small">+${T.bonus} power${ok ? "" : ` · needs shop level ${T.shop}`}</span></div><button data-act="buyW" data-w="${k}" data-c="${sc}" ${!ok || S.gold < c ? "disabled" : ""}>${IC.gold} ${num(c)}</button></div>`;
+    h += `<div class="list-item"><div class="grow">${wpnSVG(sc, k)} <b>${rarSpan(T2R[k], T.name + " " + CLS[sc].wname)}</b> <span class="small">${RAR[T2R[k]].n} · +${T.bonus} power${ok ? "" : ` · needs shop level ${T.shop}`}</span></div><button data-act="buyW" data-w="${k}" data-c="${sc}" ${!ok || S.gold < c ? "disabled" : ""}>${IC.gold} ${num(c)}</button></div>`;
   });
   return h + `</div>`;
 }
@@ -3069,7 +3338,7 @@ function render() {
   lastSig = sig(t); updTimers(t); BN.sync(); BN.place(); BN.badge(); MAR.sync(t);
 }
 function sig(t) {
-  return [townSig(t), S.boss ? S.boss.wk + ":" + S.boss.hp + ":" + S.boss.paid + (S.boss.over ? "o" : "") : "", wbLive(t) ? "B" : "", dIdx(t), dReady(t) ? "D" : "", S.chores.list.length, S.parties.map(p => p.id + phase(p, t)).join(","), S.gate.map(g => g.reason + g.members.length + (g.loot ? "L" : "")).join(","), S.heroes.map(h => h.id + (isKO(h, t) ? "k" : "") + (h.weapon || "") + (h.supply ? h.supply.k + h.supply.n : "") + (canHeal(h, t) ? "h" : "")).join(","), S.ups.map(u => u.b + u.end + (u.end <= t ? "r" : "")).join(","), Object.values(S.b).join(""), bankFull(t), Math.floor(bankHours(t)), S.events.length, backupAgo(t), needNudge(t), S.pins.map(p => p.id).join(","), S.gob ? S.gob.on.join(".") + "/" + S.gob.n : "", bankHas(), S.gold >= 50, S.potions, S.weapons.length].join("|");
+  return [townSig(t), S.boss ? S.boss.wk + ":" + S.boss.hp + ":" + S.boss.paid + (S.boss.over ? "o" : "") : "", wbLive(t) ? "B" : "", dIdx(t), dReady(t) ? "D" : "", S.chores.list.length, S.parties.map(p => p.id + phase(p, t)).join(","), S.gate.map(g => g.reason + g.members.length + (g.loot ? "L" : "")).join(","), S.heroes.map(h => h.id + (isKO(h, t) ? "k" : "") + (h.weapon || "") + (h.armor || "") + (h.supply ? h.supply.k + h.supply.n : "") + (canHeal(h, t) ? "h" : "")).join(","), S.ups.map(u => u.b + u.end + (u.end <= t ? "r" : "")).join(","), Object.values(S.b).join(""), bankFull(t), Math.floor(bankHours(t)), S.events.length, backupAgo(t), needNudge(t), S.pins.map(p => p.id).join(","), S.gob ? S.gob.on.join(".") + "/" + S.gob.n : "", bankHas(), S.gold >= 50, S.potions, S.weapons.length].join("|");
 }
 function updTimers(t) {
   document.querySelectorAll("[data-end]").forEach(el => el.textContent = fmt(+el.dataset.end - t));
@@ -3543,6 +3812,12 @@ var PUSH = (() => { // var: save() may run before this line during start-up
     const tg = tgOf(p.tid), names = p.members.map(hero).filter(Boolean).map(h => h.name);
     return { id: "p" + p.id, at: Math.round(p.end - off), title: "AFK Town", body: `${whoTxt(names)} ${names.length === 1 ? "is" : "are"} home from ${tg ? tg.name : "their trip"}!` }; });
     for (const U of (S.ups || []).slice().sort((a, c) => c.end - a.end)) if (BLD[U.b] && U.end - off > t + 5e3) { const n = (S.b[U.b] || 0) + 1; J.unshift({ id: `u${U.b}${n}`, at: Math.round(U.end - off), title: "AFK Town", body: `${BLD[U.b]} is now level ${n}!` }); }
+    // rc6.5: the snapshot party, the smithy, and raid warnings (the next two within 12 h)
+    if (S.ghost && S.ghost.end - off > t + 5e3) { const m = CPM[S.ghost.tid]; J.push({ id: "g" + Math.round(S.ghost.start), at: Math.round(S.ghost.end - off), title: "AFK Town", body: `The snapshot party is back from ${m ? m.name : "the campaign"}!` }); }
+    const W = S.work || {}; if (W.craft && W.craft.end - off > t + 5e3) J.push({ id: "c" + Math.round(W.craft.start), at: Math.round(W.craft.end - off), title: "AFK Town", body: `The smithy finished ${art(RAR[W.craft.r].n)} ${craftOut(W.craft)}!` });
+    if (W.forge && W.forge.end - off > t + 5e3) J.push({ id: "f" + Math.round(W.forge.start), at: Math.round(W.forge.end - off), title: "AFK Town", body: `The smithy finished forging ${art(TIERS[wT(W.forge.out)].name)} ${wName(W.forge.out)}!` });
+    if (S.raid && S.b.hall >= RAID_HALL) { let a = Math.max(S.raid.last || 0, t + off); for (let i = 0; i < 2; i++) { const r = raidNext(a); if (!r) break; a = r.at; const w = r.at - RAID_WARN - off; if (w > t + 5e3 && w < t + 12 * HR) J.push({ id: "r" + r.key, at: Math.round(w), title: "AFK Town", body: "Raiders spotted! They reach your town in 30 min." }); } }
+    J.sort((a, c) => a.at - c.at); while (J.length > 1 && JSON.stringify(J).length > 2800) J.pop(); // the soonest first; the Worker takes up to 4 KB a call
     return J.slice(0, 50); };
   async function getSub(make) {
     const reg = await navigator.serviceWorker.ready; let s0 = await reg.pushManager.getSubscription();
@@ -3617,6 +3892,7 @@ const TLOG_MAX = 20;
 function tlogAdd(e) {
   const L = Array.isArray(S.tlog) ? S.tlog : (S.tlog = []); S.tlseq = (S.tlseq || 0) + 1;
   const x = { id: S.tlseq, T: e.T, tid: e.tid, name: e.name, ic: e.ic, names: (e.names || []).slice(), failed: !!e.failed, full: !!e.full, gold: e.gold || 0, xp: e.xp || 0, xps: (e.xps || []).map(q => q.slice()), lv: (e.lv || []).slice(), pot: e.pot || 0, rat: e.rat || 0, wpn: e.wpn || null };
+  if (e.snap) x.snap = 1; if (e.mat) x.mat = { ...e.mat }; // rc6.5
   if (e.ko) { x.ko = e.ko; x.koMs = e.koMs; } if (e.shook) x.shook = e.shook; if (e.cp) x.cp = { id: e.cp.id, g: e.cp.g, name: CPM[e.cp.id] ? CPM[e.cp.id].name : "" }; if (e.bty && e.bty.length) x.bty = e.bty.map(b => ({ ...b })); if (e.boss) { x.boss = 1; x.dmg = e.dmg || 0; }
   L.push(x); if (L.length > TLOG_MAX) L.splice(0, L.length - TLOG_MAX); return x.id;
 }
@@ -3625,9 +3901,10 @@ const tierOf = w => (TIERS[wT(w)] || TIERS.rusty).name;
 const whenTxt = T => { const d = new Date(T - (S.offset || 0)); return d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); };
 function tripHTML(e, full) { // full = the "Party returned" card; otherwise one compact line block for the summary/log
   const res = e.boss ? `<b class="cpok">Hit for ${num(e.dmg || 0)}</b>` : e.failed ? `<b class="cpno">✗ Failed</b>` : `<b class="cpok">✓ Success</b>`;
-  const loot = [`${IC.gold}+${num(e.gold)}`, e.pot ? `${IC.potion}+${e.pot}` : "", e.rat ? `${IC.ration}+${e.rat}` : "", e.wpn ? `${IC.sword}${esc(wName(e.wpn))} <span class="small">(${esc(tierOf(e.wpn))})</span>` : ""].filter(Boolean);
-  let h = `<div class="trip${full ? " big" : ""}" data-trip="${e.id || ""}"><div class="row trh"><span class="tic">${e.ic || "❔"}</span><div class="grow"><b>${esc(e.name || "?")}</b><div class="small">${esc(whoTxt(e.names || []))} · ${res}</div></div><span class="small trw">${whenTxt(e.T)}</span></div>`;
+  const loot = [`${IC.gold}+${num(e.gold)}`, e.pot ? `${IC.potion}+${e.pot}` : "", e.rat ? `${IC.ration}+${e.rat}` : "", e.wpn ? `${IC.sword}${wHTML(e.wpn)} <span class="small">(${esc(tierOf(e.wpn))} · ${rarN(e.wpn)})</span>` : "", e.mat ? `<span class="trm">${matTxt(e.mat)}</span>` : ""].filter(Boolean);
+  let h = `<div class="trip${full ? " big" : ""}" data-trip="${e.id || ""}"><div class="row trh"><span class="tic">${e.ic || "❔"}</span><div class="grow"><b>${esc(e.name || "?")}</b><div class="small">${e.snap ? "📸 Snapshot: " : ""}${esc(whoTxt(e.names || []))} · ${res}</div></div><span class="small trw">${whenTxt(e.T)}</span></div>`;
   if (!e.boss) h += `<div class="trl">${loot.join(" ")}</div>`;
+  if (e.snap) h += `<div class="small">Snapshot run: no XP, no knockouts.</div>`;
   if (e.xps && e.xps.length) h += `<div class="small trx">${e.xps.map(q => `${esc(q[0])} +${num(q[1])} XP`).join(" · ")}</div>`;
   (e.lv || []).forEach(l => h += `<div class="small trv">${IC.xp} <b>${esc(l)}!</b></div>`);
   if (e.cp) h += `<div class="small">🗺️ Campaign: ${esc(e.cp.name || "mission")} cleared · +${num(e.cp.g)} gold (in the total)</div>`;
@@ -3652,7 +3929,7 @@ function openTrips() {
 const MAR = (() => {
   const short = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); if (s >= 3600) return Math.floor(s / 3600) + "h " + Math.floor(s % 3600 / 60) + "m"; return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
   const ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V3" stroke="#3a2a1f" stroke-width="2.2" stroke-linecap="round"/><path d="M6 4h12l-3 4 3 4H6z" fill="#c0392b" stroke="#3a2a1f" stroke-width="2" stroke-linejoin="round"/><circle cx="15" cy="18" r="3" fill="#f2b84b" stroke="#3a2a1f" stroke-width="1.8"/><circle cx="20" cy="19.5" r="2.2" fill="#7fb6e0" stroke="#3a2a1f" stroke-width="1.6"/></svg>`;
-  const out = t => S ? S.parties.filter(p => p.end > t).sort((a, b) => a.end - b.end) : [];
+  const out = t => S ? S.parties.filter(p => p.end > t).concat(S.ghost && S.ghost.end > t ? [{ ...S.ghost, id: "g", members: [], ghost: 1 }] : []).sort((a, b) => a.end - b.end) : []; // rc6.5: + the snapshot party
   const stage = (p, t) => { const ph = phase(p, t), tg = tgOf(p.tid) || {};
     return ph === "out" ? { txt: "Walking there", next: p.outEnd } : ph === "job" ? { txt: tg.boss ? "Fighting the boss" : TGM[p.tid] || CPM[p.tid] ? "In the dungeon" : "On the job", next: p.jobEnd } : { txt: "Walking home", next: p.end }; };
   let lastK = "", lastY = null, raf = 0;
@@ -3667,12 +3944,12 @@ const MAR = (() => {
   }
   function time(t) { const b = btn(); if (!b || b.hidden) return; const L = out(t); if (!L.length) return sync(t); const m = $("#marT"); if (m) m.textContent = short(L[0].end - t); place(); } // place: a banner or label may have come or gone
   // a free spot on the right edge: the middle first, then a step up/down at a time
-  const KEY = ".tg,#tg-boss:not([hidden]),.bldm,[id^=pin-],.cartm,#vilBtn,#banners .bn,.gatebub,#jobs,.jobs,[data-act=sendSel],[data-act=sendGo]";
+  const KEY = ".tg,#tg-boss:not([hidden]),.bldm,.bldm .blab,.bldm .badge,.tg > *,[id^=pin-],[id^=pin-] *,.sign,.sign *,.cartm,.cartm > *,#tevM,#cartM,#vilBtn,#banners .bn,.gatebub,#jobs,.jobs,[data-act=sendSel],[data-act=sendGo]"; // rc6.5 (Bravo): labels/badges that stick out of a building box count too, also when half scrolled off-screen
   function place() {
     const b = btn(); if (!b || b.hidden) return; const top = Math.round($("#topwrap").getBoundingClientRect().bottom), bot = Math.round($("#nav").getBoundingClientRect().top), m = 6;
-    const R = [...document.querySelectorAll(KEY)].map(e => e.getBoundingClientRect()).filter(r => r.width && r.height);
+    const R = [...document.querySelectorAll(KEY)].map(e => { const r = e.getBoundingClientRect(), p = e.closest(".cartm") ? 6 : 0; return { left: r.left - p, right: r.right + p, top: r.top - p, bottom: r.bottom + p, width: r.width, height: r.height, w: e.matches(".bldm,.tg,.tg > :not(.sign)") ? .25 : e.matches("#vilBtn,#jobs,.jobs,#banners .bn,[data-act=sendSel],[data-act=sendGo]") ? 50 : 1 }; }) /* the screen's own fixed buttons never get covered; the map can be dragged */.filter(r => r.width && r.height); // rc6.5: a cart's emoji and label spill past its box (a margin); with no free spot, covering a building's picture costs less than covering a label, a marker or a button
     const x0 = innerWidth - 6 - (b.offsetWidth || 54) - 4, x1 = innerWidth;
-    const over = (y, h) => R.reduce((a, r) => a + (r.right > x0 && r.left < x1 && r.bottom > y - 3 && r.top < y + h + 3 ? Math.min(r.bottom, y + h + 3) - Math.max(r.top, y - 3) : 0), 0);
+    const over = (y, h) => R.reduce((a, r) => a + (r.right > x0 && r.left < x1 && r.bottom > y - 3 && r.top < y + h + 3 ? (Math.min(r.bottom, y + h + 3) - Math.max(r.top, y - 3)) * r.w : 0), 0);
     const find = h => { const mid = Math.round((top + bot) / 2 - h / 2); for (let i = 0; i < 400; i++) { const y = mid + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 3; if (Math.abs(y - mid) > bot - top) break; if (y < top + m || y + h > bot - m) continue; if (!over(y, h)) return y; } return null; };
     b.classList.remove("tight"); let h = b.offsetHeight || 54, y = find(h);
     if (y == null) { b.classList.add("tight"); h = b.offsetHeight || 40; y = find(h); } // no room: the compact form (icon and count only)
@@ -3684,7 +3961,7 @@ const MAR = (() => {
     const L = out(t); let h = `<button class="sx" data-act="close" aria-label="Close">✕</button><h3>${IC.boot} March times</h3>`;
     if (!L.length) h += `<p class="small">No parties out right now.</p>`;
     h += `<div class="btns" style="margin:0 0 8px"><button class="alt" data-act="tripsOpen" id="tripsBtnM">📜 Recent trips</button></div>`;
-    for (const p of L) { const tg = tgOf(p.tid) || { name: "?", ic: "❔" }, names = p.members.map(hero).filter(Boolean).map(x => x.name), st = stage(p, t);
+    for (const p of L) { const tg = tgOf(p.tid) || { name: "?", ic: "❔" }, names = p.ghost ? ["📸 " + whoTxt(p.names || [])] : p.members.map(hero).filter(Boolean).map(x => x.name), st = stage(p, t);
       h += `<button class="mrow" data-act="marGo" data-p="${p.id}"><span class="mic" aria-hidden="true">${tg.ic || "❔"}</span><span class="grow"><span class="mn">${esc(whoTxt(names))} · ${esc(tg.name)}</span><span class="ms">${st.txt} · <b data-cend="${st.next}">${fmtCL(st.next - t)}</b></span></span><span class="mtot">Home in<br><b data-cend="${p.end}">${fmtCL(p.end - t)}</b></span></button>`; }
     const UL = (S.ups || []).filter(u => BLD[u.b]).sort((a, c) => a.end - c.end); if (UL.length) h += `<h4>${IC.hammer} Building</h4>`;
     for (const U of UL) { const n = (S.b[U.b] || 0) + 1, rd = U.end <= t; h += `<button class="mrow" data-act="marGo" data-b="${U.b}"><span class="mic" aria-hidden="true">🏗️</span><span class="grow"><span class="mn">${esc(BLD[U.b])} → level ${n}</span><span class="ms">${rd ? "Done · tap to finish" : "Upgrading"}</span></span><span class="mtot">${rd ? "" : `Done in<br><b data-cend="${U.end}">${fmtCL(U.end - t)}</b>`}</span></button>`; }
@@ -3695,6 +3972,7 @@ const MAR = (() => {
   function refresh(t) { if (kOf(t) === lastK) return; const bx = $("#sheet .box"), st = bx ? bx.scrollTop : 0; open(); const b2 = $("#sheet .box"); if (b2) b2.scrollTop = st; }
   function go(d) {
     if (d.b) { closeSheet(); if (TAB !== "town") { TAB = "town"; render(); } openBld(d.b); return; }
+    if (d.p === "g") { closeSheet(); const m = S.ghost && CPM[S.ghost.tid]; openCamp(m ? m.ch : undefined); return; } // rc6.5: the snapshot party's mission
     const p = S.parties.find(q => q.id === +d.p); closeSheet(); if (!p) return;
     if (TAB !== "map") { TAB = "map"; render(); }
     requestAnimationFrame(() => { if (!SC) return; const w = SC.walk[p.id], t = now(); let x = null, y = null;
@@ -3836,7 +4114,7 @@ bootCheck();
 if ("serviceWorker" in navigator && window.isSecureContext && !(TEST && QS.has("nosw"))) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(() => PUSH.sync()).catch(() => { }); });
 }
-window.TOWN = TEST ? { PUSH, NPA, MAR,  v64: { wbOpen, cpCan, cpWinnable, cpTarget, CP, CPM, CP_CH, cpOpen, cpNext, cpGold, cpTier, cpRuleWhy, cpCleared }, v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, WATER_TAPS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
+window.TOWN = TEST ? { PUSH, NPA, MAR, v65: { RAR, RAR_KEYS, T2R, R2T, rarOf, ARM_B, armB, MAT, MAT_KEYS, MAT_PRICE, MAT_DROP, PIN_MAT, matRoll, matAdd, matN, RECIPE, recipeOf, canPay, craftMs, craftStart, smithBusy, sellOf, wCr, takeW, forgeOpts, colSync, snapOK, snapMem, snapSend, snapTake, RAID_HALL, RAID_WIN, RAID_WARN, RAID_KEEP, RAID_BASE, RAID_TOP, RAID_DEF, RAID_LOSS, raidSlots, raidNext, raidHome, raidDef, raidPow, raidWinP, raidLoot, raidLossOf, raidWarn, raidDue, raidBld, raidU, openRaid, openSnap, v65, basePow, failChance, partyPow, cpClear },  v64: { wbOpen, cpCan, cpWinnable, cpTarget, CP, CPM, CP_CH, cpOpen, cpNext, cpGold, cpTier, cpRuleWhy, cpCleared }, v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, WATER_TAPS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
 </script>
 </body>
 </html>

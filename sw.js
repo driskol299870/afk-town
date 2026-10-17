@@ -3,8 +3,8 @@
 // rc6.0.1: "fails" also means the answer isn't the real game (host paused or out of credits): a non-200 status (402, 503, 404...),
 // a redirect to another origin, the wrong content type, or a page without the game's BUILD marker. Then the phone's copy is used,
 // and a bad answer is never cached over the good copy. The save is never stored here: it stays in localStorage "afktown.save".
-const PATCH = "rc6.4.2";
-const CACHE = "afktown-" + PATCH;
+const PATCH = "rc6.5";
+const CACHE = "afktown-" + PATCH + "-c"; // rc6.5 rebuilt after review: a new cache name, so a tester who had the first rc6.5 never keeps its copy
 const CORE = ["index.html", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "version.json"];
 const LIMIT = 5000;
 const scopeURL = p => new URL(p, self.registration.scope).href;
