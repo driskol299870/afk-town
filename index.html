@@ -481,7 +481,7 @@ html.clear #toast{bottom:176px}
 "use strict";
 const KEY = "afktown.save", MIN = 60e3, HR = 3600e3, SEC = 1e3;
 const TEST = /[?&]test(=|&|$)/.test(location.search);
-const BUILD = "rc6.5.2"; // the build tag on the Town screen; bump it each build
+const BUILD = "rc6.5.4"; // the build tag on the Town screen; bump it each build
 // ---------- sound and music (DESIGN 20, rc5.6): everything is made here in code with Web Audio. No files, no samples. ----------
 // rc5.8.2 (mark 69): music is on by default and fades in as the town shows; if the browser blocks audio it starts on the
 // first gesture of any kind (no prompt). Mute wins and lives in localStorage on this phone only (never in the save or the save code).
@@ -1343,6 +1343,7 @@ function migrate(s) {
   if (!s.chores || !Array.isArray(s.chores.list)) s.chores = { list: [], clock: Date.now() + (s.offset || 0) };
   v63(s);
   if (!s.pv) { s.prest = Math.max(0, Math.floor(+s.prest || 0)); for (const h of s.heroes || []) h.pr = Math.max(0, Math.floor(+h.pr || 0)); s.pv = 1; }
+  for (const h of s.heroes || []) if (h.bxp !== undefined && !Array.isArray(h.bxp)) delete h.bxp; // rc6.5.3: banked snapshot XP (none in old saves)
   for (const p of s.parties) {
     if (p.outEnd == null || p.jobEnd == null) {
       const n = Math.max(1, Math.min(MAXP, p.members.length)), w = .1 * (1 + .1 * (n - 1)), j = .8 * JOB[n - 1], d = p.end - p.start, f = w / (2 * w + j);
@@ -1440,6 +1441,10 @@ function failChance(mem, tg) {
 // 30 days after going live). One line to extend or end it. The phone's clock decides. Healing, upgrades, bank cap, goblins: not halved.
 const FAST_TRAVEL_END = Date.UTC(2026, 10, 9, 8, 0, 0);
 const fastOn = () => true; // rc6.2.2 (Kurtis, Oct 16): half-time trips are permanent and always pay in full; parties already out keep the pay they were sent with
+// rc6.5.4 (Kurtis, Oct 17 2026, TEMPORARY): every normal trip's dungeon/job phase (campaign missions included) is a flat 30 s.
+// Set JOB_FLAT_MS = null to go back to the normal quarter-time rules. Walks, pay and fail chances are unchanged; the boss keeps its
+// fixed 1 h job; raids don't use trip times. A Potion can't shorten the 30 s job, but it still halves the chance to fail, so it's used exactly as before (never wasted).
+const JOB_FLAT_MS = 30000;
 const JOB_Q = .5, JOB_CAP = 1800; // rc6.4.2: dungeon/job phase x0.5 on top of half time; cap 30 min (seconds)
 function runParts(mem, tg, t) {
   const f = fastOn(t === undefined ? now() : t) ? .5 : 1; // halved after everything (off-class minute too), walks capped at 5 min, the job at 1 h (DESIGN 27)
@@ -1450,11 +1455,13 @@ function runParts(mem, tg, t) {
   if (f !== 1) { w = Math.min(w * f, 300); if (!tg.fixJob) j = j * f; } // walks: half time, cap 5 min (mark 75); the boss job stays 1 h
   if (!tg.fixJob) j = Math.max(1, Math.min(j * JOB_Q, JOB_CAP)); // rc6.4.2 (PERMANENT): the dungeon/job phase is halved again (quarter time) at full pay; job cap 30 min
   // rc6.2.1 (DESIGN 39): a Ration cuts both walks by 25%, a Potion cuts the job by 10%, each last (after fast travel and the caps); the boss uses no items
-  const rat = !tg.boss && !tg.fixJob && mem.some(h => carries(h, "ration")), pot = !tg.boss && !tg.fixJob && mem.some(h => carries(h, "potion"));
+  const rat = !tg.boss && !tg.fixJob && mem.some(h => carries(h, "ration")); let pot = !tg.boss && !tg.fixJob && mem.some(h => carries(h, "potion"));
+  // rc6.5.4: a job that would take longer than JOB_FLAT_MS takes exactly that (no Potion cut); a job already shorter keeps its normal time
+  const flat = !tg.fixJob && JOB_FLAT_MS != null && Math.max(1, Math.round(j * (pot ? .9 : 1))) * SEC > JOB_FLAT_MS; if (flat) { j = JOB_FLAT_MS / SEC; pot = false; }
   const w0 = Math.round(w) * SEC, j0 = Math.round(j) * SEC;
   if (rat) w *= .75; if (pot) j *= .9;
   w = Math.round(w) * SEC; j = Math.max(1, Math.round(j)) * SEC; // a Potion never takes the job to zero
-  const o = { w, j, total: w + j + w, w0, j0, rat, pot }; if (f !== 1) o.fast = true; return o;
+  const o = { w, j, total: w + j + w, w0, j0, rat, pot, ...(flat ? { flat: 1 } : {}) }; if (f !== 1) o.fast = true; return o;
 }
 // pay while fast travel is on (DESIGN 27): gold and the weapon/Potion drop chances x fast time / normal time for this exact party; XP stays full
 const payScale = () => 1; // rc6.2.2: full pay always
@@ -1472,7 +1479,7 @@ function launch(tid, ids, T, snaps) {
   if (!tg || !mem.length) return false; // a full bank never stops a trip (rc5.3): the loot waits at the gate
   const fail = tg.boss ? 0 : failChance(mem, tg), P = runParts(mem, tg, T), pay = 1; // rc6.2.2: full pay always
   if (!tg.boss) { const rc = mem.find(h => carries(h, "ration")); if (rc) useSupply(rc);
-  const pc = mem.find(h => carries(h, "potion")); if (pc) useSupply(pc); } // the boss uses no items
+  const pc = mem.find(h => carries(h, "potion")); if (pc) useSupply(pc); } // rc6.5.4: still used under the flat job: it halves the chance to fail // the boss uses no items
   S.parties.push({ id: S.nextId++, tid, members: real.map(h => h.id), dep: real.map(snapOf), ...(sn.length ? { snaps: sn.map(o => { const c = { ...o }; delete c.used; return c; }) } : {}), ...(tg.camp ? { roll: Math.random() } : {}), start: T, outEnd: T + P.w, jobEnd: T + P.w + P.j, end: T + P.total, fail, ...(pay < 1 ? { pay } : {}), ...(tg.boss ? { wk: S.boss.wk, dmg: partyPow(mem) * WB_DMG } : {}) }); // a trip keeps the time and pay it was sent with
   return true;
 }
@@ -1483,6 +1490,21 @@ function addXP(h, x) {
   if (h.lvl >= RANK_MAX) h.xp = 0;
   syncRank(h);
   return up;
+}
+// rc6.5.3 (Kurtis, Oct 17 2026): a snapshot run earns the normal run XP for each away hero, banked on the real hero (h.bxp) while
+// they are on any trip and added only when that trip comes home, so nobody ranks up mid-trip and a trip's power never changes.
+// A hero already home when the snapshot run ends gets it at once. A retired hero's bank goes with them; a hero gone before the run
+// ends gets nothing. Prestige can't happen while banked (it needs the hero home), and it clears any stray bank.
+const bxpOf = h => (h && Array.isArray(h.bxp) ? h.bxp : []).reduce((a, b) => a + (+b.x || 0), 0);
+function bxpBank(h, x, n, ev) {
+  if (!h || !(x > 0)) return;
+  if (inParty(h.id)) { (h.bxp = Array.isArray(h.bxp) ? h.bxp : []).push({ x, n }); ev.sxps.push([h.name, x, 1]); }
+  else { ev.sxps.push([h.name, x, 0]); if (addXP(h, x)) ev.lv.push(`${h.name} reached ${CLS[h.cls].name} rank ${h.lvl}`); }
+}
+function bxpApply(h, ev) {
+  if (!h || !Array.isArray(h.bxp) || !h.bxp.length) { if (h) delete h.bxp; return; }
+  const L = h.bxp; delete h.bxp; ev.bx = ev.bx || []; ev.lv = ev.lv || [];
+  for (const b of L) { ev.bx.push([h.name, b.x, b.n || ""]); if (addXP(h, b.x)) ev.lv.push(`${h.name} reached ${CLS[h.cls].name} rank ${h.lvl}`); }
 }
 // a run ends when the party walks back in through the gate
 function ret(p) {
@@ -1498,6 +1520,9 @@ function ret(p) {
   // past the bank cap the loot stays with the party at the gate ("Bank full"); nothing is lost (DESIGN 5, rc5.2)
   const to = full ? { gold: 0, potions: 0, rations: 0, weapons: [] } : S.bank;
   if (!full && !(so && failed)) { S.bank.from = S.bank.from || []; if (!S.bank.from.includes(tg.name)) S.bank.from.push(tg.name); }
+  { let sx = tg.xp * (hasCls(all, "necro") ? 1.1 : 1); if (failed && !hasCls(all, "necro")) sx = sx / 2; sx = Math.round(sx); ev.sxps = []; // rc6.5.3: the same XP a normal run gives, banked on the real hero
+    for (const o of p.snaps || []) { const h = hero(o.id); if (h) bxpBank(h, offClass(h) ? Math.round(sx * .75) : sx, tg.name, ev); } }
+  for (const h of mem) bxpApply(h, ev); // rc6.5.3: XP banked from this hero's snapshot runs lands now that they're home
   if (!so) {
     // Archer +10% gold, Necromancer +10% XP and full XP on a fail, Rogue doubles weapon and Potion drops (DESIGN 6)
     const pk = p.pay || 1; let g = Math.round(baseGold(tg, pk) * goldB() * (0.8 + 0.4 * Math.random()) * (hasCls(all, "archer") ? 1.1 : 1)), x = tg.xp * (hasCls(all, "necro") ? 1.1 : 1);
@@ -1652,6 +1677,7 @@ const BN = {
     const drops = [ev.pot ? "Potion" : "", ev.rat ? "Ration" : "", ev.wpn ? wTxt(ev.wpn) : "", ev.mat ? matWords(ev.mat) : ""].filter(Boolean);
     let t = ev.snap ? `Snapshot party cleared ${ev.name}! +${num(ev.gold)} gold.` : `${whoTxt(ev.names)} ${ev.names.length === 1 ? "is" : "are"} home from ${ev.name}${ev.snaps && ev.snaps.length ? ` (with 📸 ${whoTxt(ev.snaps)})` : ""}. Success: ${num(ev.gold)} gold, ${ev.xp} XP.`;
     if (drops.length) t += ` Found: ${drops.join(", ")}.`;
+    if (ev.bx && ev.bx.length) t += ` ${ev.bx.map(q => `${q[0]} +${num(q[1])} XP from 📸 snapshot run`).join(", ")}.`; // rc6.5.3
     if (ev.full) t += " Bank full: the loot waits at the gate.";
     // rc5.8.1: off-class XP and rank-ups are their own short reports, right behind the Returned one
     const extra = [];
@@ -2395,7 +2421,7 @@ function openSnap(mid) {
 // ---------- rc6.5.1 (Kurtis, Oct 17 2026: "let me pick any hero for campaign missions, away ones as snapshots") ----------
 // A campaign mission's Send screen lists every hero. Heroes at home go as usual (busy, XP, can be knocked out). Heroes who are away
 // go as snapshots: their rank, gear and stats as their current trip started (p.dep, kept for every party at launch). A snapshot
-// earns no XP and takes no knockout, and the real hero is untouched. One hero's snapshot is on at most one campaign run at a time,
+// takes no knockout (rc6.5.3: its XP is banked on the real hero until they get home), and the real hero is untouched. One hero's snapshot is on at most one campaign run at a time,
 // and only while the real trip is still out (an away hero who comes home knocked out still had their snapshot taken at departure).
 // One party per mission (busy), the run's roll is fixed at send (p.roll), a clear pays through cpClear exactly once, and cleared
 // missions are never open. A party made only of snapshots is not a normal trip (no bounty trip); any home hero in it makes it a normal party.
@@ -2412,7 +2438,7 @@ const snapNames = p => (p.snaps || []).map(o => o.name);
 const partyNames = p => p.members.map(id => (hero(id) || {}).name || "?").concat(snapNames(p).map(n => "📸 " + n));
 function snapCard(t) {
   if (S.ghost) { const m = CPM[S.ghost.tid]; return `<div class="card snapcard" id="snapCard">📸 <b>Snapshot party</b> on ${esc(m ? m.name : "?")} · back in <b data-cend="${S.ghost.end}">${fmtCL(S.ghost.end - t)}</b></div>`; }
-  return `<div class="small snapcard" id="snapCard">📸 Heroes who are away can go too, as snapshots of themselves: pick them on the Send screen. Snapshots earn no XP and are never knocked out.</div>`; // rc6.5.1: the old single-snapshot card is retired
+  return `<div class="small snapcard" id="snapCard">📸 Heroes who are away can go too, as snapshots of themselves: pick them on the Send screen. A snapshot's XP is added when the hero gets home, and snapshots are never knocked out.</div>`; // rc6.5.1, rc6.5.3: the old single-snapshot card is retired
 }
 // 6) Town raids (Hall 2+): 3 a day at set times on the phone's calendar (one each morning, afternoon and evening window), warned 30 min
 //    ahead. Heroes at home (not out, not knocked out) plus the Hall and Smithy fight on their own. A win brings materials; a loss takes
@@ -2796,7 +2822,7 @@ function doPrestige(id) {
   const x = hero(id); if (!canPrestige(x)) return false;
   // every class rank back to 1 (the classes stay learned); the old weapon and supply go to stores unchanged, like a class switch (DESIGN 23 m64/65); Vigor, Skill and Grit stay
   for (const k of Object.keys(x.rk || {})) x.rk[k] = [1, 0];
-  x.lvl = 1; x.xp = 0; x.rk[x.cls] = [1, 0];
+  x.lvl = 1; x.xp = 0; x.rk[x.cls] = [1, 0]; delete x.bxp; // rc6.5.3
   if (x.weapon && x.weapon !== "starter") S.weapons.push(wOf(x.weapon, x.cls, x.wcr)); /* rc5.12.1: an own-class Starter is kept (DESIGN 23) */ if (x.supply && x.supply.n > 0) S[x.supply.k === "potion" ? "potions" : "rations"] += x.supply.n;
   x.weapon = "starter"; delete x.wcr; x.supply = null;
   if (x.armor) { S.armor.push(x.armor); x.armor = null; } // rc6.5: like the weapon, armor goes to stores
@@ -2883,16 +2909,17 @@ function openSend() {
   h += snapChips(away, t);
   if (tg.camp) S.heroes.filter(x => !avail(x, t) && !inParty(x.id) && !inYard(x.id)).forEach(x => h += `<button class="chip" disabled><span class="mini">${heroSVG(x.cls, x.seed, x.weapon)}</span>${esc(x.name)} · ${isKO(x, t) ? "Knocked out" : "Busy"}</button>`); // rc6.5.1: the campaign lists everyone; a knocked-out hero at home can't go
   h += `</div>`;
-  if (away.length) h += `<div class="small" id="snapHint" style="margin-top:6px">📸 Away heroes go as snapshots, as they were when their trip started (one snapshot run per trip): they earn no XP and are never knocked out; the real heroes keep going.</div>`;
+  if (away.length) h += `<div class="small" id="snapHint" style="margin-top:6px">📸 Away heroes go as snapshots, as they were when their trip started (one snapshot run per trip): their XP is added when the hero gets home, and they are never knocked out; the real heroes keep going.</div>`;
   const pw = partyPow(mem), ratio = pw / tg.need, f = mem.length ? failChance(mem, tg) : 0;
   if (mem.length) {
     const P = runParts(mem, tg);
     h += `<div class="card" style="margin-top:12px"><div class="row"><div class="grow">${IC.clock} Time <div class="big-n" id="sendTime" style="white-space:nowrap">${fmtC(P.total)}</div>${P.fast ? `<span class="fttag" id="ftTag">½ time</span>` : ""}</div><div class="grow">Power <div><span class="pwbig ${pwCls(ratio)}" id="sendPow">${IC.fist}${pw}</span> <span class="need">/ ${tg.need}</span></div></div></div>
       <div class="split"><div>${IC.boot}<span id="sendOut">${fmtC(P.w)}</span>${P.rat ? ` ${IC.ration}<s class="small">${fmtC(P.w0)}</s>` : ""}</div><div>${IC.swords}<span id="sendJob">${fmtC(P.j)}</span>${P.pot ? ` ${IC.potion}<s class="small">${fmtC(P.j0)}</s>` : ""}</div><div>${IC.boot.replace('class="ic"', 'class="ic flip"')}<span id="sendHome">${fmtC(P.w)}</span>${P.rat ? ` ${IC.ration}<s class="small">${fmtC(P.w0)}</s>` : ""}</div></div>
-      ${mem.some(offClass) ? `<div class="small offmin" id="offMin">${IC.swords} +${mem.filter(offClass).length} min job · off-class: ${mem.filter(offClass).map(x => esc(x.name) + " (" + CLS[x.cls].name + ")").join(", ")}</div>` : ""}
+      ${P.flat ? `<div class="small" id="flatJob">${IC.swords} Dungeon jobs take at most 30 s for now.</div>` : ""}
+      ${mem.some(offClass) && !P.flat ? `<div class="small offmin" id="offMin">${IC.swords} +${mem.filter(offClass).length} min job · off-class: ${mem.filter(offClass).map(x => esc(x.name) + " (" + CLS[x.cls].name + ")").join(", ")}</div>` : ""}
       <div class="failp small" id="sendFail">${pct(f)} chance to fail</div>
       
-      ${mem.some(x => carries(x, "potion")) ? `<div class="small">${IC.potion} 1 Potion will be used (job 10% faster, halves the chance to fail).</div>` : ""}
+      ${mem.some(x => carries(x, "potion")) ? `<div class="small">${IC.potion} 1 Potion will be used (${P.flat ? "halves the chance to fail; the job is already 30 s" : "job 10% faster, halves the chance to fail"}).</div>` : ""}
       ${mem.some(x => carries(x, "ration")) ? `<div class="small">${IC.ration} 1 Ration will be used (walks 25% faster).</div>` : ""}</div>`;
   }
   if (tg.pin) h += `<p class="small">One-time spot. It's gone once they're home.</p>`;
@@ -3187,11 +3214,12 @@ function wbRet(p) {
   const T = p.end, mem = p.members.map(hero).filter(Boolean), sn = snapNames(p), L = WB_LIST[(S.boss || { ri: 0 }).ri]; // rc6.5.1-b: snapshots add their damage (sent with the party); no Vigor, no gate
   S.parties.splice(S.parties.indexOf(p), 1); const bty0 = btySnap();
   if (!p.hit) { p.hit = 1; wbHit(p, T); }
+  const bev = { bx: [], lv: [] }; for (const h of mem) bxpApply(h, bev); // rc6.5.3: banked snapshot XP lands when the boss party gets home (the boss itself gives no XP, snapshots included)
   if (mem.length) btyAdd("boss"); // a run of only snapshots isn't a boss trip for the bounty
   for (const h of mem) h.vig = Math.min(VIG_MAX, vigOf(h) + 1); // a finished trip: +1 Vigor; no XP, no gold, never a knockout
   if (mem.length) S.gate.push({ tid: "boss", name: L.name, ic: L.ic, members: mem.map(h => h.id), reason: "Back home", loot: null, T });
   const ev = { live: LIVE && !document.hidden, T, failed: false }; AUD.ret(ev);
-  tlogAdd({ k: "ret", boss: 1, tid: "boss", name: L.name, ic: L.ic, T, names: mem.map(h => h.name), ...(sn.length ? { snaps: sn } : {}), failed: false, gold: 0, xp: 0, pot: 0, rat: 0, wpn: null, lv: [], dmg: p.dmg || 0, bty: btyDiff(bty0) }); // rc6.4.2: chests go to the bank on their own (DESIGN 35)
+  tlogAdd({ k: "ret", boss: 1, tid: "boss", name: L.name, ic: L.ic, T, names: mem.map(h => h.name), ...(sn.length ? { snaps: sn } : {}), failed: false, gold: 0, xp: 0, pot: 0, rat: 0, wpn: null, lv: bev.lv, bx: bev.bx, dmg: p.dmg || 0, bty: btyDiff(bty0) }); // rc6.4.2: chests go to the bank on their own (DESIGN 35)
   if (ev.live) BN.add("ret", L.ic, `${whoTxt(mem.map(h => h.name).concat(sn.map(n => "📸 " + n)))} hit the ${L.name} for ${num(p.dmg || 0)}.`);
 }
 function wbCard(t) {
@@ -3327,7 +3355,7 @@ function renderHeroes(t) {
     const out = inParty(x.id), next = XP_TO_NEXT(x.lvl), q = equipNeed(x);
     h += `<div class="card hcard" data-hcard="${x.id}" data-act="heroPanel" data-h="${x.id}"><div class="row" style="align-items:flex-start"><div class="portrait">${heroSVG(x.cls, x.seed, x.weapon)}</div><div class="grow">
       <h3>${esc(x.name)}${stars(x)}${q ? `<span class="hero-badge" title="Better gear in stores">${IC.sword}</span>` : ""}</h3>${clsHead(x)}
-      <div class="bar"><i style="width:${x.lvl >= RANK_MAX ? 100 : x.xp / next * 100}%"></i></div><div class="small">${x.lvl >= RANK_MAX ? "Max rank" : `XP ${num(x.xp)} / ${num(next)}`}</div>
+      <div class="bar"><i style="width:${x.lvl >= RANK_MAX ? 100 : x.xp / next * 100}%"></i></div><div class="small">${x.lvl >= RANK_MAX ? "Max rank" : `XP ${num(x.xp)} / ${num(next)}`}</div>${bxpOf(x) > 0 ? `<div class="small hbxp">📸 Banked XP +${num(bxpOf(x))} · added when ${esc(x.name)} gets home</div>` : ""}
       <div class="small">${IC.sword} ${x.weapon ? `${wornHTML(x.weapon, x.cls)} +${TIERS[x.weapon].bonus}` : "No weapon"} · ${x.armor ? `${IC.shield} ${aHTML(x.armor)} +${armB(x)}` : "No armor"} · ${x.supply ? `${x.supply.k === "potion" ? IC.potion : IC.ration} ${x.supply.n}` : "No supplies"}</div>
       <div style="margin-top:4px">${statusText(x, t)}</div></div></div>`;
     h += healBtns(x, t);
@@ -3347,7 +3375,7 @@ function renderStores() {
   { const ac = {}; (S.armor || []).forEach(r => ac[r] = (ac[r] || 0) + 1); const ak = RAR_KEYS.filter(r => ac[r]); h += `<b>Spare armor</b>` + (ak.length ? ak.map(r => `<div class="list-item" data-sa="${r}"><div class="grow"><b>${aHTML(r)}</b> <span class="small">+${ARM_B[r]} power · ×${ac[r]} · any class</span></div></div>`).join("") : `<p class="small">None. The smithy crafts armor.</p>`); }
   h += `<b>Materials</b>${matRow()}<div class="small">From monsters, dungeons and raids. The smithy turns them into gear.</div>`;
   h += `</div><div class="card"><div class="row bld">${bldSVG("shop", S.b.shop)}<div class="grow"><h3>Shop <span class="small">Lv ${S.b.shop}</span></h3><div class="small">${S.b.shop >= 4 ? "10% off everything" : "Upgrade the shop for better weapons"}</div></div></div>`;
-  h += `<div class="list-item"><div class="grow">${IC.potion} <b>Potion</b> <span class="small">Job 10% shorter and half the failure chance, or heals a knocked-out hero (1 h off)</span></div><button data-act="buyS" data-k="potion" ${S.gold < shopPrice(POTION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(POTION_PRICE)}</button></div>`;
+  h += `<div class="list-item"><div class="grow">${IC.potion} <b>Potion</b> <span class="small">${JOB_FLAT_MS != null ? "Half the failure chance (jobs take at most 30 s for now)" : "Job 10% shorter and half the failure chance"}, or heals a knocked-out hero (1 h off)</span></div><button data-act="buyS" data-k="potion" ${S.gold < shopPrice(POTION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(POTION_PRICE)}</button></div>`;
   h += `<div class="list-item"><div class="grow">${IC.ration} <b>Ration</b> <span class="small">Makes both walks of a run 25% shorter</span></div><button data-act="buyS" data-k="ration" ${S.gold < shopPrice(RATION_PRICE) ? "disabled" : ""}>${IC.gold} ${shopPrice(RATION_PRICE)}</button></div>`;
   for (const k of Object.keys(MAT_PRICE)) h += `<div class="list-item" data-buym="${k}"><div class="grow">${MAT[k].ic} <b>${MAT[k].n}</b> <span class="small">A basic smithy material · you have ${matN(k)}</span></div><div class="row" style="gap:4px;flex:none"><button data-act="buyM" data-k="${k}" data-n="1" ${S.gold < shopPrice(MAT_PRICE[k]) ? "disabled" : ""}>${IC.gold} ${shopPrice(MAT_PRICE[k])}</button><button data-act="buyM" data-k="${k}" data-n="5" ${S.gold < 5 * shopPrice(MAT_PRICE[k]) ? "disabled" : ""}>×5 · ${num(5 * shopPrice(MAT_PRICE[k]))}</button></div></div>`;
   const sc = shopCls();
@@ -3936,6 +3964,7 @@ function tlogAdd(e) {
   const L = Array.isArray(S.tlog) ? S.tlog : (S.tlog = []); S.tlseq = (S.tlseq || 0) + 1;
   const x = { id: S.tlseq, T: e.T, tid: e.tid, name: e.name, ic: e.ic, names: (e.names || []).slice(), failed: !!e.failed, full: !!e.full, gold: e.gold || 0, xp: e.xp || 0, xps: (e.xps || []).map(q => q.slice()), lv: (e.lv || []).slice(), pot: e.pot || 0, rat: e.rat || 0, wpn: e.wpn || null };
   if (e.snap) x.snap = 1; if (e.mat) x.mat = { ...e.mat }; if (e.snaps && e.snaps.length) x.snaps = e.snaps.slice(); // rc6.5, rc6.5.1
+  if (e.sxps && e.sxps.length) x.sxps = e.sxps.map(q => q.slice()); if (e.bx && e.bx.length) x.bx = e.bx.map(q => q.slice()); // rc6.5.3
   if (e.ko) { x.ko = e.ko; x.koMs = e.koMs; } if (e.shook) x.shook = e.shook; if (e.cp) x.cp = { id: e.cp.id, g: e.cp.g, name: CPM[e.cp.id] ? CPM[e.cp.id].name : "" }; if (e.bty && e.bty.length) x.bty = e.bty.map(b => ({ ...b })); if (e.boss) { x.boss = 1; x.dmg = e.dmg || 0; }
   L.push(x); if (L.length > TLOG_MAX) L.splice(0, L.length - TLOG_MAX); return x.id;
 }
@@ -3947,8 +3976,10 @@ function tripHTML(e, full) { // full = the "Party returned" card; otherwise one 
   const loot = [`${IC.gold}+${num(e.gold)}`, e.pot ? `${IC.potion}+${e.pot}` : "", e.rat ? `${IC.ration}+${e.rat}` : "", e.wpn ? `${IC.sword}${wHTML(e.wpn)} <span class="small">(${esc(tierOf(e.wpn))} · ${rarN(e.wpn)})</span>` : "", e.mat ? `<span class="trm">${matTxt(e.mat)}</span>` : ""].filter(Boolean);
   let h = `<div class="trip${full ? " big" : ""}" data-trip="${e.id || ""}"><div class="row trh"><span class="tic">${e.ic || "❔"}</span><div class="grow"><b>${esc(e.name || "?")}</b><div class="small">${e.snap ? "📸 Snapshot: " : ""}${esc(whoTxt((e.names || []).concat((e.snaps || []).map(n => "📸 " + n))))} · ${res}</div></div><span class="small trw">${whenTxt(e.T)}</span></div>`;
   if (!e.boss) h += `<div class="trl">${loot.join(" ")}</div>`;
-  if (e.snap) h += `<div class="small">Snapshot run: no XP, no knockouts.</div>`;
-  else if (e.snaps && e.snaps.length) h += `<div class="small trsn">📸 Snapshots: ${esc(whoTxt(e.snaps))} (no XP, no knockouts)</div>`;
+  if (e.snap) h += `<div class="small">Snapshot run: no knockouts.</div>`;
+  else if (e.snaps && e.snaps.length) h += `<div class="small trsn">📸 Snapshots: ${esc(whoTxt(e.snaps))} (no knockouts)</div>`;
+  (e.sxps || []).forEach(q => h += `<div class="small trsx">📸 ${esc(q[0])} +${num(q[1])} XP ${q[2] ? `banked · added when ${esc(q[0])} gets home` : "· added now"}</div>`); // rc6.5.3
+  (e.bx || []).forEach(q => h += `<div class="small trbx">${esc(q[0])} +${num(q[1])} XP from 📸 snapshot run${q[2] ? ` (${esc(q[2])})` : ""}</div>`);
   if (e.xps && e.xps.length) h += `<div class="small trx">${e.xps.map(q => `${esc(q[0])} +${num(q[1])} XP`).join(" · ")}</div>`;
   (e.lv || []).forEach(l => h += `<div class="small trv">${IC.xp} <b>${esc(l)}!</b></div>`);
   if (e.cp) h += `<div class="small">🗺️ Campaign: ${esc(e.cp.name || "mission")} cleared · +${num(e.cp.g)} gold (in the total)</div>`;
@@ -4158,7 +4189,7 @@ bootCheck();
 if ("serviceWorker" in navigator && window.isSecureContext && !(TEST && QS.has("nosw"))) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(() => PUSH.sync()).catch(() => { }); });
 }
-window.TOWN = TEST ? { PUSH, NPA, MAR, v651: { saveHW, recovMs, REC_H, KO_MAX, KO_MIN, KNIGHT_CUT, snapTg, openWbSend, tripHTML, openTrips, snapOf, snapLive, depOf, snapBusy, canSnap, pickOK, selMem, slotsUsed, partyNames, v651, doSend, launch, ret, openSend, get send() { return send; }, set send(v) { send = v; } }, v65: { RAR, RAR_KEYS, T2R, R2T, rarOf, ARM_B, armB, MAT, MAT_KEYS, MAT_PRICE, MAT_DROP, PIN_MAT, matRoll, matAdd, matN, RECIPE, recipeOf, canPay, craftMs, craftStart, smithBusy, sellOf, wCr, takeW, forgeOpts, colSync, snapOK, snapMem, snapSend, snapTake, RAID_HALL, RAID_WIN, RAID_WARN, RAID_KEEP, RAID_BASE, RAID_TOP, RAID_DEF, RAID_LOSS, raidSlots, raidNext, raidHome, raidDef, raidPow, raidWinP, raidLoot, raidLossOf, raidWarn, raidDue, raidBld, raidU, openRaid, openSnap, v65, basePow, failChance, partyPow, cpClear },  v64: { wbOpen, cpCan, cpWinnable, cpTarget, CP, CPM, CP_CH, cpOpen, cpNext, cpGold, cpTier, cpRuleWhy, cpCleared }, v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, WATER_TAPS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
+window.TOWN = TEST ? { PUSH, NPA, MAR, v653: { bxpOf, bxpBank, bxpApply }, v651: { saveHW, recovMs, REC_H, KO_MAX, KO_MIN, KNIGHT_CUT, snapTg, openWbSend, tripHTML, openTrips, snapOf, snapLive, depOf, snapBusy, canSnap, pickOK, selMem, slotsUsed, partyNames, v651, doSend, launch, ret, openSend, get send() { return send; }, set send(v) { send = v; } }, v65: { RAR, RAR_KEYS, T2R, R2T, rarOf, ARM_B, armB, MAT, MAT_KEYS, MAT_PRICE, MAT_DROP, PIN_MAT, matRoll, matAdd, matN, RECIPE, recipeOf, canPay, craftMs, craftStart, smithBusy, sellOf, wCr, takeW, forgeOpts, colSync, snapOK, snapMem, snapSend, snapTake, RAID_HALL, RAID_WIN, RAID_WARN, RAID_KEEP, RAID_BASE, RAID_TOP, RAID_DEF, RAID_LOSS, raidSlots, raidNext, raidHome, raidDef, raidPow, raidWinP, raidLoot, raidLossOf, raidWarn, raidDue, raidBld, raidU, openRaid, openSnap, v65, basePow, failChance, partyPow, cpClear },  v64: { wbOpen, cpCan, cpWinnable, cpTarget, CP, CPM, CP_CH, cpOpen, cpNext, cpGold, cpTier, cpRuleWhy, cpCleared }, v632: { tevKey, tevOn, tevNeed, tevPay, tevSync, colSync, colHave, colN, colDone, COL_PAGES, TEV_JOB }, v631: { yardBase, yardMark, yardRate, yardSpots, yardSync, rbSync, rbKey, vetRank, offerCost, YARD_MAX_MS, inYard }, v63: { WORK, PROD, PROD_MAX, BTY, prodMs, forgeMs, forgeOpts, vLvl, vAt, btyPay, btyReady, merOn, merKey, bldEx, townSync, fmtCL, recovMs }, PATCH: MYPATCH, pcmp, wb: { WB_LIST, WB_HP, WB_DMG, WB_MARKS, WB_HX, H_MIN, INC_KEEP, wbWeek, wbLive: () => wbLive(now()), wbH: () => wbH(now()), incSum: () => incSum(now()), incDiv: () => incDiv(now()), wbCap, wbTier, target: () => wbTarget(), state: () => S.boss }, daily: { DAILY, CHEST_ROLL, dState, dIdx, dMidnight, dClaim: () => dClaim(now()) }, chores: { CHORES, CHORE_EVERY, CHORE_MAX, CHORE_GOLD, HOLD_MS, WATER_TAPS, newChore: k => newChore(S, k), openChore, choreGold }, XP_TO_NEXT, RANK_MAX, PRESTIGE_MAX, goldB, capMs, doPrestige, power, art: { heroBody, heroSVG, bldSVG, wpnSVG, grassTex, TEX }, audio: AUD, tips: TIP, BN, closeSheet, VIL, PATHS, PIN_PATHS, GOB_SPOTS, GOB_COIN, gobSync, dayKey, worldGeo, crPts, cam: { home: camHome, on: camOn, to: camTo, vp: vpEl, place: placeVP }, get LIVE() { return LIVE; }, get S() { return S; }, process, now, runParts, tgOf, phase, jobs, equipNeed, route: id => route(id), get SC() { return SC; }, render, save, fmtFull, ART, PIN_ART, resetScene, adv(ms) { S.offset = (S.offset || 0) + ms; process(now()); save(); render(); maybePopup(); } } : undefined;
 </script>
 </body>
 </html>
